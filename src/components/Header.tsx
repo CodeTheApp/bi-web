@@ -1,23 +1,23 @@
 import Image from 'next/image';
-import logo from '../../../assets/logo.png';
+import logo from '../../assets/logo.png';
 
 export default function Header() {
   return (
     <header
       id='header'
-      className='border-b border-[#e4e4e4] mb-8 flex items-center p-4 fixed top-0 left-0 z-[100] bg-[var(--body-color)] w-full transition-all duration-300 ease-in-out'
+      className='mb-8 flex items-center  p-3 fixed top-0 left-0 z-[100] w-full transition-all duration-300 ease-in-out'
     >
-      <nav className='container mx-auto flex items-center justify-between'>
+      <div className='container flex items-center px-7 py-2 justify-between border border-white rounded-xl bg-white bg-opacity-30'>
         <a className='title' href='#home'>
           <Image
             className='logo'
             src={logo}
             alt='logo da loja Brasilia Iluminação'
-            width={190}
+            width={150}
           />
         </a>
 
-        <div className='menu flex items-center space-x-6'>
+        <div className='menu flex items-center space-x-6 text-white'>
           <a className='title cursor-pointer' href='#home'>
             Início
           </a>
@@ -37,13 +37,13 @@ export default function Header() {
             Contato
           </a>
           <a
-            className='title-loja cursor-pointer'
+            className='title-loja cursor-pointer text-orange '
             href='https://shop.brasiliailuminacao.com.br/'
           >
             Nossa Loja
           </a>
         </div>
-      </nav>
+      </div>
     </header>
   );
 }

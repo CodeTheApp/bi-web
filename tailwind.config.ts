@@ -1,24 +1,46 @@
 import type { Config } from 'tailwindcss';
 
-const config: Config = {
+const config = {
+  darkMode: ['class'],
   content: [
-    './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
-    './src/components/**/*.{js,ts,jsx,tsx,mdx}',
-    './src/app/**/*.{js,ts,jsx,tsx,mdx}',
+    './pages/**/*.{ts,tsx}',
+    './components/**/*.{ts,tsx}',
+    './app/**/*.{ts,tsx}',
+    './src/**/*.{ts,tsx}',
   ],
+  prefix: '',
   theme: {
-    extend: {
-      backgroundImage: {
-        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
-        'gradient-conic':
-          'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
-      },
-      fontFamily: {
-        body: ['Montserrat', 'sans-serif'],
+    container: {
+      center: true,
+      screens: {
+        '2xl': '1400px',
       },
     },
+    extend: {
+      fontFamily: {
+        sans: ['Montserrat', 'sans-serif'],
+        alt: ['Georgia', 'serif'],
+      },
+      colors: {
+        white: '#fafafa',
+        black: '#000000',
+        orange: '#ff9900',
+        baseColor: '#d1d6d0',
+        baseColorSecond: '#aeaeae',
+        baseColorDark: '#343434',
+        baseColorAlt: '#aeaeae',
+        titleColor: '#d1d6d0',
+        textColor: '#595959',
+        bodyColor: '#fafafa',
+        transparent: 'transparent',
+      },
+    },
+    maxWidth: {
+      xl: '1120px',
+      'custom-600': '38rem',
+    },
   },
-  plugins: [],
-};
+  plugins: [require('tailwindcss-animate')],
+} satisfies Config;
 
 export default config;
