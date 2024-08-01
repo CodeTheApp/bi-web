@@ -22,17 +22,19 @@ const config = {
         alt: ['Georgia', 'serif'],
       },
       colors: {
-        white: '#fafafa',
+        white: '#FFFFFF',
         black: '#000000',
-        orange: '#ff9900',
-        baseColor: '#d1d6d0',
-        baseColorSecond: '#aeaeae',
-        baseColorDark: '#343434',
-        baseColorAlt: '#aeaeae',
-        titleColor: '#d1d6d0',
-        textColor: '#595959',
-        bodyColor: '#fafafa',
         transparent: 'transparent',
+        orange: '#ff9900',
+        brand: {
+          primary: '#D1D6D0',
+          secundary: '#AEAEAE',
+          dark: '#343434',
+        },
+        gray: {
+          50: '#FAFAFA',
+          500: '#595959',
+        },
       },
     },
     maxWidth: {

@@ -7,7 +7,7 @@ export default function Header() {
       id='header'
       className='mb-8 flex items-center  p-3 fixed top-0 left-0 z-[100] w-full transition-all duration-300 ease-in-out'
     >
-      <div className='container flex items-center px-7 py-2 justify-between border border-white rounded-xl bg-white bg-opacity-30'>
+      <div className='container flex items-center px-7 py-2 justify-between border border-gray-50 rounded-xl bg-gray-50 bg-opacity-30'>
         <a className='title' href='#home'>
           <Image
             className='logo'
@@ -17,7 +17,7 @@ export default function Header() {
           />
         </a>
 
-        <div className='menu flex items-center space-x-6 text-white'>
+        <div className='menu flex items-center space-x-6 text-gray-50'>
           <a className='title cursor-pointer' href='#home'>
             Início
           </a>
