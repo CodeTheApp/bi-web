@@ -41,6 +41,10 @@ const config = {
       xl: '1120px',
       'custom-600': '38rem',
     },
+    boxShadow: {
+      shape:
+        '0px 8px 8px rgba(0, 0, 0, 0.1), 0px 4px 4px rgba(0, 0, 0, 0.1), 0px 2px 2px rgba(0, 0, 0, 0.1), 0px 0px 0px 1px rgba(0, 0, 0, 0.1), inset 0px 0px 0px 1px rgba(250, 250, 250, 0.03), inset 0px 1px 0px rgba(250, 250, 250, 0.03)',
+    },
   },
   plugins: [require('tailwindcss-animate')],
 } satisfies Config;

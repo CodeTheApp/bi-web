@@ -1,19 +1,15 @@
-import Image from 'next/image';
 import banner from '../../assets/projeto2.jpg';
 
 export default function HomeSection() {
   return (
-    <section className='relative w-full h-screen'>
-      <Image
-        src={banner}
-        alt='Projeto da loja Brasília Iluminação'
-        layout='fill'
-        objectFit='cover'
-        quality={100}
-      />
+    <section
+      id='home'
+      className='relative w-full h-screen bg-fixed bg-cover bg-center'
+      style={{ backgroundImage: `url(${banner.src})` }}
+    >
       <div
         id='opacity'
-        className='absolute inset-0 bg-black bg-opacity-50 flex items-center'
+        className='absolute inset-0 bg-black bg-opacity-60 flex items-center'
       >
         <div className='flex justify-start items-center w-full px-5 text-gray-50'>
           <div
@@ -29,7 +25,7 @@ export default function HomeSection() {
             </p>
             <a
               href='#contact'
-              className='bg-orange text-gray-50 px-6 py-2 rounded-md hover:bg-orange-600 transition duration-300'
+              className='bg-orange text-gray-50 px-6 py-2 rounded-full hover:bg-orange-600 transition duration-300'
             >
               Entre em contato
             </a>
