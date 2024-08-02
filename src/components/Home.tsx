@@ -4,7 +4,7 @@ export default function HomeSection() {
   return (
     <section
       id='home'
-      className='relative w-full h-screen bg-fixed bg-cover bg-center'
+      className='relative z-10 w-full h-screen bg-fixed bg-cover bg-center'
       style={{ backgroundImage: `url(${banner.src})` }}
     >
       <div
