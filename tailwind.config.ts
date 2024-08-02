@@ -36,6 +36,12 @@ const config = {
           500: '#595959',
         },
       },
+      backgroundPosition: {
+        'center-right': 'center right',
+      },
+      backgroundSize: {
+        cover: 'cover',
+      },
     },
     maxWidth: {
       xl: '1120px',

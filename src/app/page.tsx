@@ -1,5 +1,6 @@
 import About from '@/components/About';
 import Services from '@/components/Services';
+import Store from '@/components/Store';
 import { Separator } from '@/components/ui/separator';
 import Header from '../components/Header';
 import HomeSection from '../components/Home';
@@ -12,6 +13,9 @@ export default function Home() {
       <About />
       <Separator />
       <Services />
+      <Separator />
+      <Store />
+      <Separator />
     </body>
   );
 }
