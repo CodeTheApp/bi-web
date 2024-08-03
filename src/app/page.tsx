@@ -1,4 +1,5 @@
 import About from '@/components/About';
+import Footer from '@/components/Footer';
 import Services from '@/components/Services';
 import Store from '@/components/Store';
 import Testimonials from '@/components/Testimonials';
@@ -18,6 +19,8 @@ export default function Home() {
       <Store />
       <Separator />
       <Testimonials />
+      <Separator />
+      <Footer />
     </body>
   );
 }
