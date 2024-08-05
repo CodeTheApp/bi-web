@@ -5,7 +5,7 @@ export default function About() {
   return (
     <section
       id='about'
-      className='section min-h-screen flex items-center bg-white'
+      className='section min-h-[92vh] py-28 flex items-center bg-white'
     >
       <div className='container w-auto flex flex-col md:flex-row items-center'>
         <div className='relative mb-8 md:mb-0 md:mr-8'>

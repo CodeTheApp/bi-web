@@ -1,6 +1,6 @@
 export default function Testimonials() {
   return (
-    <section id='testimonials' className='section bg-white py-12'>
+    <section id='testimonials' className='bg-white py-32'>
       <div className='container flex flex-col items-center'>
         <header className='mb-8'>
           <h1 className='text-3xl font-bold text-gray-500'>
