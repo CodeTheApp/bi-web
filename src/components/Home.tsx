@@ -11,7 +11,7 @@ export default function HomeSection() {
         id='opacity'
         className='absolute inset-0 bg-brand-black bg-opacity-60 flex items-center'
       >
-        <div className='flex justify-start items-center w-full px-5 text-brand-gray-50'>
+        <div className='flex justify-start items-center w-full text-brand-gray-50'>
           <div
             id='content'
             className='text-center md:text-left p-5 max-w-custom-600 ml-96'

@@ -12,10 +12,10 @@ export default function Store() {
         backgroundImage: `url(${BackgroudImg.src})`,
       }}
     >
-      <div className='absolute -left-24 top-10 transform overflow-hidden'>
+      <div className='absolute -left-52 top-10 transform overflow-hidden'>
         <Image src={lumi1} alt='luminária de chão' width={800} />
       </div>
-      <div className='absolute left-96 top-[-60px] overflow-hidden'>
+      <div className='absolute left-64 top-[-60px] overflow-hidden'>
         <Image src={lumi2} alt='luminária de parede' width={300} />
       </div>
 

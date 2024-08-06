@@ -53,6 +53,10 @@ const config = {
       header:
         '0px 4px 4px rgba(89, 89, 89, 0.1), 0px 2px 2px rgba(89, 89, 89, 0.1), 0px 1px 1px rgba(89, 89, 89, 0.1), 0px 0px 0px 1px rgba(250, 250, 250, 0.2), inset 0px 0px 0px 1px rgba(250, 250, 250, 0.05), inset 0px 1px 0px rgba(250, 250, 250, 0.05)',
     },
+    lineHeight: {
+      tightest: '1.2',
+      zero: '0',
+    },
   },
   plugins: [require('tailwindcss-animate')],
 } satisfies Config;

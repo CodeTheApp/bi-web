@@ -21,26 +21,26 @@ export default function Header() {
         </a>
 
         <div className='menu flex items-center space-x-6 text-brand-dark'>
-          <a className='title cursor-pointer' href='#home'>
+          <a className='cursor-pointer' href='#home'>
             Início
           </a>
-          <a className='title cursor-pointer' href='#about'>
+          <a className='cursor-pointer' href='#about'>
             Quem somos
           </a>
-          <a className='title cursor-pointer' href='#services'>
+          <a className='cursor-pointer' href='#services'>
             Serviços
           </a>
-          <a className='title cursor-pointer' href='#testimonials'>
+          <a className='cursor-pointer' href='#testimonials'>
             Depoimentos
           </a>
-          <a className='title cursor-pointer' href='#gallery'>
+          <a className='cursor-pointer' href='#gallery'>
             Projetos
           </a>
-          <a className='title cursor-pointer' href='#contact'>
+          <a className='cursor-pointer' href='#contact'>
             Contato
           </a>
           <a
-            className='title-loja cursor-pointer text-brand-orange'
+            className='cursor-pointer text-brand-orange'
             href='https://shop.brasiliailuminacao.com.br/'
           >
             Nossa Loja
