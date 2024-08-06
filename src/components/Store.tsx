@@ -7,7 +7,7 @@ export default function Store() {
   return (
     <div
       id='loja'
-      className='relative flex items-center justify-center bg-white overflow-hidden bg-no-repeat bg-cover h-96 p-8'
+      className='relative flex items-center justify-center bg-brand-white overflow-hidden bg-no-repeat bg-cover h-96 p-8'
       style={{
         backgroundImage: `url(${BackgroudImg.src})`,
       }}
@@ -24,7 +24,7 @@ export default function Store() {
           Descubra como a iluminação pode mudar o seu espaço
         </h1>
         <a
-          className='bg-orange text-white px-6 py-2 rounded-full hover:bg-orange-600'
+          className='bg-brand-orange text-brand-white px-6 py-2 rounded-full hover:bg-brand-orange-600'
           href='https://shop.brasiliailuminacao.com.br/'
           target='_blank'
         >

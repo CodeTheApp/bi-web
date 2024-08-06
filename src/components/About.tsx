@@ -5,7 +5,7 @@ export default function About() {
   return (
     <section
       id='about'
-      className='section min-h-[92vh] py-28 flex items-center bg-white'
+      className='section min-h-[92vh] py-28 flex items-center bg-brand-white'
     >
       <div className='container w-auto flex flex-col md:flex-row items-center'>
         <div className='relative mb-8 md:mb-0 md:mr-8'>
@@ -18,7 +18,9 @@ export default function About() {
           />
         </div>
         <div className=' max-w-[600px] opacity-80'>
-          <h1 className='text-3xl text-gray-500 font-bold mb-4'>Quem somos</h1>
+          <h1 className='text-3xl text-brand-gray-500 font-bold mb-4'>
+            Quem somos
+          </h1>
           <p className='text-base mb-4'>Entre. Sinta... A luz é sua!</p>
           <p className='text-lg mb-4'>
             Há mais de dez anos, sob o olhar sensível da designer Camila de

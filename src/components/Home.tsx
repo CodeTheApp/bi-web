@@ -4,14 +4,14 @@ export default function HomeSection() {
   return (
     <section
       id='home'
-      className='relative z-10 w-full min-h-[92vh] bg-fixed bg-cover'
+      className='relative z-10 w-full min-h-[96vh] bg-fixed bg-cover'
       style={{ backgroundImage: `url(${banner.src})` }}
     >
       <div
         id='opacity'
-        className='absolute inset-0 bg-black bg-opacity-60 flex items-center'
+        className='absolute inset-0 bg-brand-black bg-opacity-60 flex items-center'
       >
-        <div className='flex justify-start items-center w-full px-5 text-gray-50'>
+        <div className='flex justify-start items-center w-full px-5 text-brand-gray-50'>
           <div
             id='content'
             className='text-center md:text-left p-5 max-w-custom-600 ml-96'
@@ -25,7 +25,7 @@ export default function HomeSection() {
             </p>
             <a
               href='#contact'
-              className='bg-orange text-gray-50 px-6 py-2 rounded-full hover:bg-orange-600 transition duration-300'
+              className='bg-brand-orange text-brand-gray-50 px-6 py-2 rounded-full hover:bg-brand-orange-600 transition duration-300'
             >
               Entre em contato
             </a>

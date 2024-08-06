@@ -3,21 +3,23 @@ import logo from '../../assets/logo.png';
 
 export default function Footer() {
   return (
-    <footer className='bg-brand-primary py-9'>
+    <footer className='bg-brand-primary py-9 px-36'>
       <div className='container mx-auto flex flex-col md:flex-row items-center justify-between'>
-        <div className='brand flex flex-col items-center md:items-start text-center md:text-left'>
+        <div className='flex flex-col items-center md:items-start text-center md:text-left'>
           <Image
-            className='w-60 h-auto mb-4'
+            className='w-52 h-auto mb-4'
             src={logo}
             alt='logo da loja Brasilia Iluminação'
           />
-          <p className='text-gray-500 text-base'>©2023 Brasília Iluminação.</p>
-          <p className='text-gray-500 text-base'>
+          <p className='text-brand-gray-500 text-xs'>
+            ©2023 Brasília Iluminação.
+          </p>
+          <p className='text-brand-gray-500 text-xs'>
             Todos os direitos reservados.
           </p>
         </div>
 
-        <div className='social flex gap-4 mt-6 md:mt-0'>
+        <div className='flex gap-4 mt-6 md:mt-0'>
           <a
             href='https://www.instagram.com/brasilia_iluminacao/'
             target='_blank'
