@@ -205,7 +205,7 @@ export default async function Home() {
                   <i id="rail" />
                 </div>
                 {S.lumi.items.map((it, i) => (
-                  <div className={`step${i === 0 ? " on" : ""}`} key={it.title}>
+                  <div className={`step${i === 0 ? " on atual" : ""}`} key={it.title}>
                     <span className="k">{nn(i)}</span>
                     <h3>{it.title}</h3>
                     <p>{it.text}</p>

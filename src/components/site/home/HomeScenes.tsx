@@ -72,6 +72,9 @@ export function HomeScenes({ stepCaptions }: { stepCaptions: string[] }) {
           });
         }
 
+      });
+
+      mm.add("(min-width: 981px) and (min-height: 560px)", () => {
         const steps = gsap.utils.toArray<HTMLElement>(".step");
         const imgs = gsap.utils.toArray<HTMLElement>("#stack img");
         const capEl = document.getElementById("cap");
@@ -79,12 +82,15 @@ export function HomeScenes({ stepCaptions }: { stepCaptions: string[] }) {
         let active = 0;
         const lt = gsap.timeline({
           scrollTrigger: {
-            trigger: "#lumiPin", start: "top top", end: "+=220%", scrub: 1, pin: true, anticipatePin: 1,
+            trigger: "#lumiPin", start: "top top", end: "+=220%", scrub: 1, pin: true, anticipatePin: 1, invalidateOnRefresh: true,
             onUpdate: (s) => {
               const k = Math.min(n - 1, Math.floor(s.progress * (n + 0.0001)));
               if (k !== active) {
                 active = k;
-                steps.forEach((st, i) => st.classList.toggle("on", i <= k));
+                steps.forEach((st, i) => {
+                  st.classList.toggle("on", i <= k);
+                  st.classList.toggle("atual", i === k);
+                });
                 if (capEl) capEl.textContent = stepCaptions[k] ?? "";
               }
             },
