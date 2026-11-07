@@ -1,0 +1,35 @@
+@import "tailwindcss";
+
+/* Tokens do Manual da Marca (paleta Iluminar) disponíveis como utilitários: bg-ambar, text-marrom-intenso… */
+@theme {
+  --color-ambar-golden: #f9a226;
+  --color-ambar: #e68907;
+  --color-ambar-queimado: #b76b02;
+  --color-marrom-calmo: #8e461f;
+  --color-marrom-intenso: #592d1d;
+  --color-marrom-escuro: #291007;
+  --color-preto: #120400;
+  --color-cinza: #bdb8b2;
+  --color-bege: #fff8f5;
+  --color-bege-2: #f5ebe2;
+  --color-branco: #fffbfb;
+  --color-painel: #fbf6f1;
+  --color-linha: #ede3da;
+  --color-linha-2: #e2d5c9;
+  --color-suave: #7a6a61;
+
+  --font-display: var(--font-belleza), "Belleza", Georgia, serif;
+  --font-sans: var(--font-montserrat), "Montserrat", system-ui, sans-serif;
+
+  --ease-marca: cubic-bezier(0.16, 0.84, 0.44, 1);
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection {
+    background: var(--color-ambar);
+    color: var(--color-marrom-escuro);
+  }
+}
