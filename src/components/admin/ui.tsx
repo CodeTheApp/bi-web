@@ -1,7 +1,16 @@
 "use client";
-import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, type ReactNode } from "react";
+import { toast as sonner } from "sonner";
+import { Alert, AlertDescription, AlertTitle } from "@/components/reui/alert";
+import { Badge } from "@/components/reui/badge";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Skeleton as UiSkeleton } from "@/components/ui/skeleton";
+import { Switch as UiSwitch } from "@/components/ui/switch";
+import { Toaster } from "@/components/ui/sonner";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import type { Result } from "@/server/admin/actions";
-import { Icon } from "./icons";
 
 /* ---------------- resultado das ações ---------------- */
 export async function unwrap<T>(p: Promise<Result<T>>): Promise<T> {
@@ -10,72 +19,99 @@ export async function unwrap<T>(p: Promise<Result<T>>): Promise<T> {
   return r.data;
 }
 
-/* ---------------- aviso (toast) ---------------- */
-const ToastCtx = createContext<(msg: string) => void>(() => {});
-export const useToast = () => useContext(ToastCtx);
+/* ---------------- avisos (sonner) ---------------- */
+export const useToast = () => notify;
+const notify = (msg: string) => sonner(msg);
 
 export function ToastProvider({ children }: { children: ReactNode }) {
-  const [msg, setMsg] = useState("");
-  const [on, setOn] = useState(false);
-  const t = useRef<number | undefined>(undefined);
-  const show = useCallback((m: string) => {
-    setMsg(m);
-    setOn(true);
-    window.clearTimeout(t.current);
-    t.current = window.setTimeout(() => setOn(false), 2800);
-  }, []);
   return (
-    <ToastCtx.Provider value={show}>
+    <>
       {children}
-      <div className={`toast${on ? " on" : ""}`} role="status" aria-live="polite">
-        <Icon name="check" />
-        <span>{msg}</span>
-      </div>
-    </ToastCtx.Provider>
+      <Toaster
+        position="bottom-center"
+        toastOptions={{ classNames: { toast: "!bg-marrom-escuro !text-branco !border-marrom-escuro !rounded-xl !font-medium", icon: "!text-ambar-golden" } }}
+      />
+    </>
   );
 }
 
-/* ---------------- pedaços de interface ---------------- */
+/* ---------------- status (ReUI Badge) ---------------- */
 export const STATUS_LABEL: Record<string, string> = {
   novo: "Novo", andamento: "Em andamento", respondido: "Respondido", arquivado: "Arquivado", publicado: "Publicado", rascunho: "Rascunho", oculto: "Oculto",
+  Ativo: "Ativo", "Convite pendente": "Convite pendente",
 };
-export const Chip = ({ s }: { s: string }) => <span className={`chip ${s}`}>{STATUS_LABEL[s] ?? s}</span>;
+const STATUS_VARIANT = {
+  novo: "warning-light", "Convite pendente": "warning-light", andamento: "info-light", respondido: "success-light", publicado: "success-light", Ativo: "success-light",
+  arquivado: "secondary", oculto: "secondary", rascunho: "primary-light",
+} as const;
 
-export function Switch({ checked, onChange, title }: { checked: boolean; onChange: (v: boolean) => void; title?: string }) {
+export function Chip({ s, className }: { s: string; className?: string }) {
+  const variant = STATUS_VARIANT[s as keyof typeof STATUS_VARIANT] ?? "secondary";
   return (
-    <label className="sw" title={title}>
-      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} aria-label={title} />
-      <i />
-    </label>
+    <Badge variant={variant} radius="full" size="lg" className={`gap-1.5 px-2 font-semibold ${className ?? ""}`}>
+      <span className="size-1.5 rounded-full bg-current" aria-hidden="true" />
+      {STATUS_LABEL[s] ?? s}
+    </Badge>
   );
+}
+
+/* ---------------- controles ---------------- */
+export function Switch({ checked, onChange, title }: { checked: boolean; onChange: (v: boolean) => void; title?: string }) {
+  return <UiSwitch checked={checked} onCheckedChange={onChange} aria-label={title} title={title} />;
 }
 
 export function Seg<T extends string>({ value, options, onChange }: { value: T; options: Array<[T, string]>; onChange: (v: T) => void }) {
   return (
-    <div className="seg" role="radiogroup">
+    <ToggleGroup
+      type="single"
+      value={value}
+      onValueChange={(v) => v && onChange(v as T)}
+      className="rounded-[10px] bg-secondary p-[3px]"
+      spacing={2}
+    >
       {options.map(([v, l]) => (
-        <button key={v} type="button" role="radio" aria-checked={v === value} className={v === value ? "on" : undefined} onClick={() => onChange(v)}>
+        <ToggleGroupItem
+          key={v}
+          value={v}
+          size="sm"
+          className="rounded-lg px-3 text-[12.5px] font-semibold text-muted-foreground data-[state=on]:bg-card data-[state=on]:text-foreground data-[state=on]:shadow-sm"
+        >
           {l}
-        </button>
+        </ToggleGroupItem>
       ))}
-    </div>
+    </ToggleGroup>
   );
 }
 
-export function Modal({ open, onClose, children, wide }: { open: boolean; onClose: () => void; children: ReactNode; wide?: boolean }) {
-  useEffect(() => {
-    if (!open) return;
-    const k = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    window.addEventListener("keydown", k);
-    return () => window.removeEventListener("keydown", k);
-  }, [open, onClose]);
-  if (!open) return null;
+/** Lista de opções (Select do shadcn/Radix). */
+export function Choice<T extends string>({ value, options, onChange, label, size = "default", className }: { value: T; options: Array<[T, string]>; onChange: (v: T) => void; label: string; size?: "sm" | "default"; className?: string }) {
   return (
-    <div className="modal on" onClick={(e) => e.target === e.currentTarget && onClose()} role="dialog" aria-modal="true">
-      <div className="box" style={wide ? { width: "min(900px,100%)" } : undefined}>
+    <Select value={value} onValueChange={(v) => onChange(v as T)}>
+      <SelectTrigger size={size} aria-label={label} className={className ?? "w-full"}>
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {options.map(([v, l]) => (
+          <SelectItem key={v} value={v}>
+            {l}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
+export function Modal({ open, onClose, title, description, children, wide }: { open: boolean; onClose: () => void; title: ReactNode; description?: ReactNode; children: ReactNode; wide?: boolean }) {
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className={`adm max-h-[86vh] overflow-auto rounded-2xl bg-card p-6 ${wide ? "sm:max-w-[900px]" : "sm:max-w-[560px]"}`}>
+        <DialogHeader>
+          <DialogTitle className="font-heading text-[26px] font-normal">{title}</DialogTitle>
+          {description && <DialogDescription>{description}</DialogDescription>}
+        </DialogHeader>
         {children}
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -91,19 +127,21 @@ export function PageHead({ title, sub, children }: { title: ReactNode; sub?: Rea
   );
 }
 
-export const Skeleton = ({ h = 120, style }: { h?: number; style?: React.CSSProperties }) => <div className="skel" style={{ height: h, ...style }} />;
+export const Skeleton = ({ h = 120, style }: { h?: number; style?: React.CSSProperties }) => <UiSkeleton className="rounded-xl bg-secondary" style={{ height: h, ...style }} />;
 
 export function ErrorBox({ error, retry }: { error: unknown; retry?: () => void }) {
   return (
-    <div className="card pad" role="alert">
-      <b>Não foi possível carregar.</b>
-      <p className="muted" style={{ margin: "6px 0 12px" }}>{error instanceof Error ? error.message : "Tente de novo."}</p>
-      {retry && (
-        <button className="btn sec sm" onClick={retry}>
-          Tentar de novo
-        </button>
-      )}
-    </div>
+    <Alert variant="destructive" className="mb-4">
+      <AlertTitle>Não foi possível carregar.</AlertTitle>
+      <AlertDescription>
+        {error instanceof Error ? error.message : "Tente de novo."}
+        {retry && (
+          <Button variant="outline" size="sm" className="mt-2" onClick={retry}>
+            Tentar de novo
+          </Button>
+        )}
+      </AlertDescription>
+    </Alert>
   );
 }
 

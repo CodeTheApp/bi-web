@@ -1,11 +1,27 @@
 "use client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { type ColumnDef, type SortingState, useTable } from "@tanstack/react-table";
+import { useMemo, useState } from "react";
+import { formatPhoneNumber } from "react-phone-number-input";
+import { DataGrid, DataGridContainer, dataGridFeatures, type DataGridFeatures } from "@/components/reui/data-grid/data-grid";
+import { DataGridScrollArea } from "@/components/reui/data-grid/data-grid-scroll-area";
+import { DataGridTable } from "@/components/reui/data-grid/data-grid-table";
+import { PhoneInput } from "@/components/reui/phone-input";
+import { Badge } from "@/components/reui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import type { Settings as S } from "@/lib/content/schema";
-import type { AdminUser } from "@/server/admin/types";
 import { getSettings, inviteUser, saveSettings } from "@/server/admin/actions";
+import type { AdminUser } from "@/server/admin/types";
 import { Icon } from "../icons";
-import { ErrorBox, initials, Modal, PageHead, Skeleton, unwrap, useToast } from "../ui";
+import { Chip, Choice, ErrorBox, initials, Modal, PageHead, Skeleton, unwrap, useToast } from "../ui";
+
+/** "(61) 98358-3129" ↔ "+5561983583129" (o PhoneInput da ReUI trabalha em E.164; o site mostra o formato nacional). */
+const toE164 = (s: string) => {
+  const d = s.replace(/\D/g, "");
+  return d ? `+${d.startsWith("55") ? d : `55${d}`}` : "";
+};
 
 export function Settings() {
   const q = useQuery({ queryKey: ["settings"], queryFn: () => unwrap(getSettings()) });
@@ -32,31 +48,49 @@ function Form({ initial, users, canEdit }: { initial: S; users: AdminUser[]; can
     <>
       <PageHead title="Configurações" sub={canEdit ? "Contatos, SEO e quem acessa o painel." : "Só administradores alteram estas configurações."}>
         {canEdit && (
-          <button className="btn dark" onClick={() => save.mutate()} disabled={save.isPending}>
+          <Button variant="dark" onClick={() => save.mutate()} disabled={save.isPending}>
             <Icon name="check" />
             Salvar
-          </button>
+          </Button>
         )}
       </PageHead>
       <div className="two">
         <div className="card pad stack">
           <b>Contatos e links</b>
           <div className="grid2">
-            <label className="f">WhatsApp<input className="in" {...f("whatsapp")} /></label>
-            <label className="f">Instagram<input className="in" {...f("instagram")} /></label>
+            <div className="f" style={{ display: "flex", flexDirection: "column", gap: 6, fontWeight: 600, fontSize: 12.5 }}>
+              WhatsApp
+              <PhoneInput
+                defaultCountry="BR"
+                value={toE164(s.whatsapp)}
+                disabled={!canEdit}
+                aria-label="WhatsApp"
+                onChange={(v) => setS({ ...s, whatsapp: v ? formatPhoneNumber(v) || v : "" })}
+              />
+            </div>
+            <label className="f">
+              Instagram
+              <Input {...f("instagram")} />
+            </label>
           </div>
           <label className="f">
             E-mail de contato<small>Aparece no site. Os avisos de contato vão para EMAIL_TEAM_TO.</small>
-            <input className="in" type="email" {...f("email")} />
+            <Input type="email" {...f("email")} />
           </label>
-          <label className="f">Link da loja<input className="in" type="url" {...f("shopUrl")} /></label>
+          <label className="f">
+            Link da loja
+            <Input type="url" {...f("shopUrl")} />
+          </label>
         </div>
         <div className="card pad stack">
           <b>SEO padrão</b>
-          <label className="f">Título<small>{s.seoTitle.length} de 70 caracteres</small><input className="in" maxLength={70} {...f("seoTitle")} /></label>
+          <label className="f">
+            Título<small>{s.seoTitle.length} de 70 caracteres</small>
+            <Input maxLength={70} {...f("seoTitle")} />
+          </label>
           <label className="f">
             Descrição<small>{s.seoDescription.length} de 160 caracteres</small>
-            <textarea className="in" maxLength={160} {...f("seoDescription")} />
+            <Textarea maxLength={160} {...f("seoDescription")} />
           </label>
           <div className="seo">
             <div className="u">brasiliailuminacao.com.br</div>
@@ -66,34 +100,63 @@ function Form({ initial, users, canEdit }: { initial: S; users: AdminUser[]; can
         </div>
       </div>
       {canEdit && (
-        <div className="card tw" style={{ marginTop: 18 }}>
+        <div className="card" style={{ marginTop: 18 }}>
           <div className="row" style={{ padding: "16px 20px" }}>
             <b>Usuários</b>
             <span className="sp" />
-            <button className="btn sec sm" onClick={() => setInv(true)}>
+            <Button variant="outline" size="sm" onClick={() => setInv(true)}>
               <Icon name="plus" />
               Convidar
-            </button>
+            </Button>
           </div>
-          <table className="tbl">
-            <thead>
-              <tr><th>Nome</th><th>E-mail</th><th>Papel</th><th>Status</th></tr>
-            </thead>
-            <tbody>
-              {users.map((u) => (
-                <tr key={u.id}>
-                  <td><div className="row"><span className="av">{initials(u.name)}</span><b style={{ fontWeight: 600 }}>{u.name}</b></div></td>
-                  <td className="muted">{u.email}</td>
-                  <td><span className="tag">{u.role === "admin" ? "Admin" : "Editor"}</span></td>
-                  <td><span className={`chip ${u.status === "Ativo" ? "respondido" : "novo"}`}>{u.status}</span></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <Users users={users} />
         </div>
       )}
       <Invite open={inv} onClose={() => setInv(false)} />
     </>
+  );
+}
+
+/** Tabela de usuários com o Data Grid da ReUI (TanStack Table), ordenável por coluna. */
+function Users({ users }: { users: AdminUser[] }) {
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const columns = useMemo<ColumnDef<DataGridFeatures, AdminUser>[]>(
+    () => [
+      {
+        accessorKey: "name",
+        header: "Nome",
+        size: 220,
+        cell: ({ row }) => (
+          <div className="row">
+            <span className="av">{initials(row.original.name)}</span>
+            <b style={{ fontWeight: 600 }}>{row.original.name}</b>
+          </div>
+        ),
+      },
+      { accessorKey: "email", header: "E-mail", size: 260, cell: (i) => <span className="muted">{i.getValue() as string}</span>, meta: { headerClassName: "max-md:hidden", cellClassName: "max-md:hidden" } },
+      {
+        accessorKey: "role",
+        header: "Papel",
+        size: 110,
+        cell: (i) => (
+          <Badge variant="secondary" radius="full" size="lg">
+            {i.getValue() === "admin" ? "Admin" : "Editor"}
+          </Badge>
+        ),
+      },
+      { accessorKey: "status", header: "Status", size: 150, cell: (i) => <Chip s={i.getValue() as string} /> },
+    ],
+    [],
+  );
+  const table = useTable({ features: dataGridFeatures, columns, data: users, getRowId: (u: AdminUser) => u.id, state: { sorting }, onSortingChange: setSorting });
+  return (
+    <DataGrid table={table} recordCount={users.length} tableLayout={{ headerBackground: false, rowBorder: true }}>
+      <DataGridContainer border={false}>
+        <DataGridScrollArea>
+          <DataGridTable />
+        </DataGridScrollArea>
+      </DataGridContainer>
+    </DataGrid>
   );
 }
 
@@ -115,25 +178,29 @@ function Invite({ open, onClose }: { open: boolean; onClose: () => void }) {
     onError: (e) => toast(e.message),
   });
   return (
-    <Modal open={open} onClose={onClose}>
-      <h2 className="serif" style={{ fontSize: 26, marginBottom: 14 }}>Convidar para o painel</h2>
+    <Modal open={open} onClose={onClose} title="Convidar para o painel" description="A pessoa recebe um e-mail para criar a senha.">
       <div className="stack">
-        <label className="f">Nome<input className="in" value={name} onChange={(e) => setName(e.target.value)} /></label>
-        <label className="f">E-mail<input className="in" type="email" value={email} onChange={(e) => setEmail(e.target.value)} /></label>
         <label className="f">
-          Papel
-          <select className="in" value={role} onChange={(e) => setRole(e.target.value as "editor" | "admin")}>
-            <option value="editor">Editor</option>
-            <option value="admin">Admin</option>
-          </select>
-          <small>Editor edita conteúdo e mensagens; não altera configurações nem usuários.</small>
+          Nome
+          <Input value={name} onChange={(e) => setName(e.target.value)} />
         </label>
+        <label className="f">
+          E-mail
+          <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+        </label>
+        <div className="f" style={{ display: "flex", flexDirection: "column", gap: 6, fontWeight: 600, fontSize: 12.5 }}>
+          Papel
+          <Choice<"editor" | "admin"> label="Papel" value={role} options={[["editor", "Editor"], ["admin", "Admin"]]} onChange={setRole} />
+          <small className="hint">Editor edita conteúdo e mensagens; não altera configurações nem usuários.</small>
+        </div>
       </div>
       <div className="row" style={{ justifyContent: "flex-end", marginTop: 20 }}>
-        <button className="btn sec" onClick={onClose}>Cancelar</button>
-        <button className="btn pri" disabled={!name.trim() || !email.trim() || m.isPending} onClick={() => m.mutate()}>
+        <Button variant="outline" onClick={onClose}>
+          Cancelar
+        </Button>
+        <Button disabled={!name.trim() || !email.trim() || m.isPending} onClick={() => m.mutate()}>
           Enviar convite
-        </button>
+        </Button>
       </div>
     </Modal>
   );

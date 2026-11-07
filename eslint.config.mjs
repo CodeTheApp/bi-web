@@ -18,6 +18,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Código dos registros do shadcn/ui e da ReUI (gerado pela CLI; só ajustes de tema)
+    "src/components/ui/**",
+    "src/components/reui/**",
+    "src/hooks/use-file-upload.ts",
   ]),
 ]);
 

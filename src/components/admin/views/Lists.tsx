@@ -1,4 +1,7 @@
 "use client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { getList, saveList } from "@/server/admin/actions";
@@ -56,30 +59,29 @@ function Editor({ kind, title, initial }: { kind: "testimonials" | "faqs"; title
         <b>{title}</b>
         <span className="muted" style={{ fontSize: 12 }}>{save.isPending ? "Salvando…" : ""}</span>
         <span className="sp" />
-        <button className="btn ghost sm" onClick={() => update([...items, { id: crypto.randomUUID(), a: "", b: "", c: "", visible: false }])}>
+        <Button variant="ghost" size="sm" onClick={() => update([...items, { id: crypto.randomUUID(), a: "", b: "", c: "", visible: false }])}>
           <Icon name="plus" />
           Adicionar
-        </button>
+        </Button>
       </div>
+      {items.length === 0 && <div className="empty">Nada por aqui ainda.</div>}
       <SortableList items={items} getId={(i) => i.id} onMove={(next) => update(next, "Ordem salva")}>
-        <div>
-          {items.length === 0 && <div className="empty">Nada por aqui ainda.</div>}
           {items.map((t) => (
-            <SortableItem key={t.id} id={t.id} className={`li${t.visible ? "" : " off"}`}>
+            <SortableItem key={t.id} value={t.id} className={`li${t.visible ? "" : " off"}`}>
               <Grip style={{ marginTop: 8 }} />
               <div className="c">
                 {isT ? (
                   <>
-                    <textarea className="in" placeholder="Depoimento" value={t.a} onChange={(e) => patch(t.id, { a: e.target.value })} />
+                    <Textarea className="in" placeholder="Depoimento" value={t.a} onChange={(e) => patch(t.id, { a: e.target.value })} />
                     <div className="grid2">
-                      <input className="in" placeholder="Nome" value={t.b} onChange={(e) => patch(t.id, { b: e.target.value })} />
-                      <input className="in" placeholder="Bairro / UF" value={t.c ?? ""} onChange={(e) => patch(t.id, { c: e.target.value })} />
+                      <Input className="in" placeholder="Nome" value={t.b} onChange={(e) => patch(t.id, { b: e.target.value })} />
+                      <Input className="in" placeholder="Bairro / UF" value={t.c ?? ""} onChange={(e) => patch(t.id, { c: e.target.value })} />
                     </div>
                   </>
                 ) : (
                   <>
-                    <input className="in" placeholder="Pergunta" style={{ fontWeight: 600 }} value={t.a} onChange={(e) => patch(t.id, { a: e.target.value })} />
-                    <textarea className="in" placeholder="Resposta" value={t.b} onChange={(e) => patch(t.id, { b: e.target.value })} />
+                    <Input className="in" placeholder="Pergunta" style={{ fontWeight: 600 }} value={t.a} onChange={(e) => patch(t.id, { a: e.target.value })} />
+                    <Textarea className="in" placeholder="Resposta" value={t.b} onChange={(e) => patch(t.id, { b: e.target.value })} />
                   </>
                 )}
               </div>
@@ -89,13 +91,12 @@ function Editor({ kind, title, initial }: { kind: "testimonials" | "faqs"; title
                   title="Mostrar no site"
                   onChange={(v) => update(items.map((x) => (x.id === t.id ? { ...x, visible: v } : x)), v ? (isT ? "Depoimento visível" : "Pergunta visível") : isT ? "Depoimento oculto" : "Pergunta oculta")}
                 />
-                <button className="btn ghost sm" aria-label="Excluir" title="Excluir" onClick={() => update(items.filter((x) => x.id !== t.id), "Excluído")}>
+                <Button variant="ghost" size="sm" aria-label="Excluir" title="Excluir" onClick={() => update(items.filter((x) => x.id !== t.id), "Excluído")}>
                   <Icon name="trash" />
-                </button>
+                </Button>
               </div>
             </SortableItem>
           ))}
-        </div>
       </SortableList>
     </>
   );

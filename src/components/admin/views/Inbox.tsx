@@ -1,12 +1,15 @@
 "use client";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { ThreadStatus } from "@/lib/content/schema";
 import { createAttachmentUpload, getThread, getThreads, reply, setThreadStatus } from "@/server/admin/actions";
 import type { Thread } from "@/server/admin/types";
 import { Icon } from "../icons";
-import { ago, Chip, initials, PageHead, Skeleton, STATUS_LABEL, unwrap, useToast } from "../ui";
+import { ago, Chip, Choice, initials, PageHead, Skeleton, STATUS_LABEL, unwrap, useToast } from "../ui";
 
 const FILTERS: Array<[string, string]> = [["todas", "Abertas"], ["novo", "Novas"], ["andamento", "Em andamento"], ["respondido", "Respondidas"], ["arquivado", "Arquivadas"]];
 const TPL: Record<string, string> = {
@@ -14,6 +17,8 @@ const TPL: Record<string, string> = {
   "Envio de orçamento": "Olá, {nome}! Segue o orçamento conforme conversamos. Qualquer dúvida, estou à disposição por aqui ou pelo WhatsApp.\n\nCamila de Lelis\nBrasília Iluminação",
   "Pedido de planta": "Olá, {nome}! Para começar, você consegue me enviar a planta baixa (PDF ou DWG) e algumas fotos dos ambientes? Com isso já consigo preparar uma proposta.\n\nCamila de Lelis\nBrasília Iluminação",
 };
+
+const noop = () => () => {};
 
 export function Inbox() {
   const sp = useSearchParams();
@@ -23,7 +28,11 @@ export function Inbox() {
   const [filter, setFilter] = useState("todas");
   const [q, setQ] = useState(sp.get("q") ?? "");
   const threads = useQuery({ queryKey: ["threads"], queryFn: () => unwrap(getThreads()) });
-  const all = threads.data ?? [];
+  // a caixa fica dentro de <Suspense> (useSearchParams) e hidrata depois do menu, que já pode ter
+  // buscado as conversas; até hidratar, mostra o mesmo esqueleto que veio do servidor
+  const hydrated = useSyncExternalStore(noop, () => true, () => false);
+  const data = hydrated ? threads.data : undefined;
+  const all = data ?? [];
   const needle = q.trim().toLowerCase();
   const list = all.filter(
     (t) =>
@@ -47,11 +56,11 @@ export function Inbox() {
             ))}
           </div>
           <div style={{ padding: "10px 12px", borderBottom: "1px solid var(--line)" }}>
-            <input className="in" placeholder="Buscar nesta caixa" value={q} onChange={(e) => setQ(e.target.value)} style={{ padding: "8px 10px" }} aria-label="Buscar mensagens" />
+            <Input className="in" placeholder="Buscar nesta caixa" value={q} onChange={(e) => setQ(e.target.value)} style={{ padding: "8px 10px" }} aria-label="Buscar mensagens" />
           </div>
           <ul>
-            {!threads.data && [0, 1, 2].map((i) => <li key={i}><Skeleton h={60} style={{ flex: 1 }} /></li>)}
-            {threads.data && list.length === 0 && <div className="empty">Nenhuma conversa aqui.</div>}
+            {!data && [0, 1, 2].map((i) => <li key={i}><Skeleton h={60} style={{ flex: 1 }} /></li>)}
+            {data && list.length === 0 && <div className="empty">Nenhuma conversa aqui.</div>}
             {list.map((t) => (
               <li key={t.id} className={`${selected === t.id ? "on " : ""}${t.unread ? "un" : ""}`} onClick={() => open(t.id)}>
                 <span className="av">{initials(t.name)}</span>
@@ -75,7 +84,7 @@ export function Inbox() {
           </ul>
         </div>
         <div className="ib-r">
-          {selected ? (
+          {selected && hydrated ? (
             <ThreadView key={selected} id={selected} onBack={() => open(null)} />
           ) : (
             <div className="empty" style={{ margin: "auto" }}>
@@ -157,9 +166,9 @@ function ThreadView({ id, onBack }: { id: string; onBack: () => void }) {
   return (
     <>
       <div className="hd">
-        <button className="btn ghost sm burger" onClick={onBack} aria-label="Voltar para a lista">
+        <Button variant="ghost" size="sm" className="burger" onClick={onBack} aria-label="Voltar para a lista">
           <Icon name="back" />
-        </button>
+        </Button>
         <div style={{ flex: 1, minWidth: 200 }}>
           <h2>{t.subject || "(sem assunto)"}</h2>
           <div className="meta">
@@ -168,18 +177,19 @@ function ThreadView({ id, onBack }: { id: string; onBack: () => void }) {
         </div>
         {t.interest && <span className="tag">{t.interest}</span>}
         {wa && (
-          <a className="btn sec sm" href={wa} target="_blank" rel="noopener">
+          <a className={buttonVariants({ variant: "outline", size: "sm" })} href={wa} target="_blank" rel="noopener">
             <Icon name="phone" />
             WhatsApp
           </a>
         )}
-        <select value={t.status} onChange={(e) => status.mutate(e.target.value as ThreadStatus)} aria-label="Status da conversa">
-          {(["novo", "andamento", "respondido", "arquivado"] as const).map((s) => (
-            <option key={s} value={s}>
-              {STATUS_LABEL[s]}
-            </option>
-          ))}
-        </select>
+        <Choice<ThreadStatus>
+          label="Status da conversa"
+          size="sm"
+          className="w-[150px]"
+          value={t.status}
+          options={(["novo", "andamento", "respondido", "arquivado"] as const).map((x) => [x, STATUS_LABEL[x]] as [ThreadStatus, string])}
+          onChange={(v) => status.mutate(v)}
+        />
       </div>
       <div className="thread" ref={box}>
         {t.messages.map((m) => (
@@ -223,21 +233,21 @@ function ThreadView({ id, onBack }: { id: string; onBack: () => void }) {
             </button>
           ))}
         </div>
-        <textarea className="in" placeholder={t.email ? `Escreva sua resposta para ${first}…` : "Este contato deixou só telefone: responda pelo WhatsApp."} value={text} onChange={(e) => setText(e.target.value)} disabled={!t.email} aria-label="Resposta" />
+        <Textarea className="in" placeholder={t.email ? `Escreva sua resposta para ${first}…` : "Este contato deixou só telefone: responda pelo WhatsApp."} value={text} onChange={(e) => setText(e.target.value)} disabled={!t.email} aria-label="Resposta" />
         <div className="tb">
-          <button className="btn ghost sm" type="button" onClick={() => file.current?.click()} disabled={uploading || !t.email}>
+          <Button variant="ghost" size="sm" type="button" onClick={() => file.current?.click()} disabled={uploading || !t.email}>
             <Icon name="clip" />
             {uploading ? "Enviando…" : "Anexar"}
-          </button>
+          </Button>
           <input ref={file} type="file" hidden multiple accept="application/pdf,image/*" onChange={(e) => (attach(e.target.files), (e.target.value = ""))} />
           <span className="muted" style={{ fontSize: 12 }}>
             {atts.map((a) => a.name).join(", ")}
           </span>
           <span className="sp" />
-          <button className="btn pri" type="button" disabled={!text.trim() || send.isPending || !t.email} onClick={() => send.mutate()}>
+          <Button type="button" disabled={!text.trim() || send.isPending || !t.email} onClick={() => send.mutate()}>
             <Icon name="send" />
             {send.isPending ? "Enviando…" : "Enviar"}
-          </button>
+          </Button>
         </div>
       </div>
     </>

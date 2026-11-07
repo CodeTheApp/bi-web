@@ -1,4 +1,6 @@
 "use client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { deleteMedia, getMedia, setMediaAlt } from "@/server/admin/actions";
@@ -61,7 +63,7 @@ function Card({ m }: { m: MediaItem }) {
         </div>
       </div>
       <div className="bd">
-        <input
+        <Input
           className="in"
           placeholder="Descreva a foto…"
           aria-label="Texto alternativo"
@@ -73,15 +75,16 @@ function Card({ m }: { m: MediaItem }) {
         <div className="row">
           <small>{used ? "Em uso" : "Sem uso"}</small>
           <span className="sp" />
-          <button
-            className="btn ghost sm"
+          <Button
+            variant="ghost"
+            size="sm"
             title={used ? "Em uso: troque nos projetos/seções antes de excluir" : "Excluir"}
             aria-label="Excluir foto"
             disabled={used || del.isPending}
             onClick={() => del.mutate()}
           >
             <Icon name="trash" />
-          </button>
+          </Button>
         </div>
       </div>
     </div>

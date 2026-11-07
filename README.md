@@ -6,12 +6,29 @@ Site institucional com muito movimento (rolagem suave, cenas fixadas, hero 3D de
 | --- | --- |
 | Front-end | Next.js 16 (App Router, React 19), TypeScript, Tailwind v4 |
 | Movimento | GSAP + ScrollTrigger, Lenis, three.js (hero Cobogó, carregado sob demanda) |
-| Painel | TanStack Query + Server Actions, dnd-kit para ordenar |
+| Painel | TanStack Query + Server Actions; componentes [shadcn/ui](https://ui.shadcn.com) (Radix) e [ReUI](https://reui.io) |
 | Back-end e banco | Supabase (Postgres com RLS, Auth, Realtime) |
 | Arquivos | Amazon S3 + CloudFront (envio direto do navegador com URL assinada) |
 | E-mail | Resend + React Email (envio, recebimento e status de entrega) |
 | Hospedagem | AWS Amplify Hosting (SSR) · DNS no Route 53 |
 | Tipografia | Belleza (títulos, no lugar da Monterchi do manual) + Montserrat |
+
+### Componentes do painel (shadcn/ui + ReUI)
+
+O painel usa os componentes da ReUI onde eles resolvem algo de verdade, sobre a base do shadcn/ui, tudo no tema da marca (`src/app/globals.css`):
+
+| Onde | Componente |
+| --- | --- |
+| Ordenar itens, projetos, galeria, depoimentos e FAQ | ReUI **Sortable** (dnd-kit: mouse, toque e teclado) |
+| Envio de fotos (botão e área de soltar) | ReUI **useFileUpload** |
+| Status (novo, publicado, rascunho…) | ReUI **Badge** |
+| Aviso do modo demonstração e erros | ReUI **Alert** |
+| Atividade recente no Início | ReUI **Timeline** |
+| Usuários em Configurações | ReUI **Data Grid** (TanStack Table) |
+| WhatsApp em Configurações | ReUI **Phone Input** |
+| Botões, campos, seletores, diálogos, interruptores, avisos | shadcn/ui (Radix) + Sonner |
+
+Os arquivos ficam em `src/components/ui` e `src/components/reui` e vêm da CLI: `npx shadcn@latest add @reui/<nome>` (o registro `@reui` já está em `components.json`). O site público não usa esses componentes: ele mantém o visual e as animações do protótipo aprovado.
 
 ## Rodar no computador
 

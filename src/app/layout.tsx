@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Belleza, Montserrat } from "next/font/google";
 import "./globals.css";
+import { cn } from "@/lib/utils";
 
 const belleza = Belleza({ weight: "400", subsets: ["latin"], variable: "--font-belleza", display: "swap" });
 const montserrat = Montserrat({ subsets: ["latin"], variable: "--font-montserrat", display: "swap" });
@@ -17,7 +18,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="pt-BR" className={`no-js ${belleza.variable} ${montserrat.variable}`} suppressHydrationWarning>
+    <html lang="pt-BR" className={cn("no-js", belleza.variable, montserrat.variable)} suppressHydrationWarning>
       <body>{children}</body>
     </html>
   );

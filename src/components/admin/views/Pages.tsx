@@ -1,4 +1,7 @@
 "use client";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { SECTION_KEYS, SECTION_NAMES, type Section, type SectionKey } from "@/lib/content/schema";
@@ -188,19 +191,19 @@ function Editor({ row, hero }: { row: SectionRow; hero: "cobogo" | "janela" }) {
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={draft.image} alt="" style={{ width: 72, height: 54, objectFit: "cover", borderRadius: 8 }} />
                   )}
-                  <button className="btn sec sm" type="button" onClick={() => setPicker(true)}>
+                  <Button variant="outline" size="sm" type="button" onClick={() => setPicker(true)}>
                     <Icon name="image" />
                     Trocar imagem
-                  </button>
+                  </Button>
                 </div>
               </div>
             ) : (
               <label className="f" key={f}>
                 {LABEL[key]?.[f] ?? BASE[f]}
                 {f === "text" || (f === "title" && (draft.title.length > 40 || key === "quem")) ? (
-                  <textarea className="in" value={draft[f]} onChange={(e) => setField(f, e.target.value)} rows={f === "text" ? 5 : 3} />
+                  <Textarea className="in" value={draft[f]} onChange={(e) => setField(f, e.target.value)} rows={f === "text" ? 5 : 3} />
                 ) : (
-                  <input className="in" value={draft[f]} onChange={(e) => setField(f, e.target.value)} />
+                  <Input className="in" value={draft[f]} onChange={(e) => setField(f, e.target.value)} />
                 )}
               </label>
             ),
@@ -213,31 +216,29 @@ function Editor({ row, hero }: { row: SectionRow; hero: "cobogo" | "janela" }) {
                   arraste para reordenar
                 </span>
                 <span className="sp" />
-                <button className="btn ghost sm" type="button" disabled={items.length >= 8} onClick={() => setItemsAndSave([...items, { _id: `i${++seq}`, title: "Novo item", text: "" }])}>
+                <Button variant="ghost" size="sm" type="button" disabled={items.length >= 8} onClick={() => setItemsAndSave([...items, { _id: `i${++seq}`, title: "Novo item", text: "" }])}>
                   <Icon name="plus" />
                   Adicionar
-                </button>
+                </Button>
               </div>
               {cfg.hint && <p className="hint">{cfg.hint}</p>}
-              <SortableList items={items} getId={(i) => i._id} onMove={setItemsAndSave}>
-                <div className="stack">
+              <SortableList items={items} getId={(i) => i._id} onMove={setItemsAndSave} className="stack">
                   {items.map((it, i) => (
-                    <SortableItem key={it._id} id={it._id} className="item">
+                    <SortableItem key={it._id} value={it._id} className="item">
                       <div className="row">
                         <Grip />
                         <span className="ih">Item {i + 1}</span>
                         <span className="sp" />
-                        <button className="btn ghost sm" type="button" title="Remover" aria-label="Remover item" onClick={() => setItemsAndSave(items.filter((x) => x._id !== it._id))}>
+                        <Button variant="ghost" size="sm" type="button" title="Remover" aria-label="Remover item" onClick={() => setItemsAndSave(items.filter((x) => x._id !== it._id))}>
                           <Icon name="trash" />
-                        </button>
+                        </Button>
                       </div>
-                      <input className="in" placeholder={cfg.title} value={it.title} onChange={(e) => setItemsAndSave(items.map((x) => (x._id === it._id ? { ...x, title: e.target.value } : x)))} />
+                      <Input className="in" placeholder={cfg.title} value={it.title} onChange={(e) => setItemsAndSave(items.map((x) => (x._id === it._id ? { ...x, title: e.target.value } : x)))} />
                       {cfg.text && (
-                        <textarea className="in" placeholder={cfg.text} style={{ minHeight: 60 }} value={it.text} onChange={(e) => setItemsAndSave(items.map((x) => (x._id === it._id ? { ...x, text: e.target.value } : x)))} />
+                        <Textarea className="in" placeholder={cfg.text} style={{ minHeight: 60 }} value={it.text} onChange={(e) => setItemsAndSave(items.map((x) => (x._id === it._id ? { ...x, text: e.target.value } : x)))} />
                       )}
                     </SortableItem>
                   ))}
-                </div>
               </SortableList>
             </>
           )}
@@ -247,13 +248,13 @@ function Editor({ row, hero }: { row: SectionRow; hero: "cobogo" | "janela" }) {
             {saved}
           </span>
           <span className="sp" />
-          <button className="btn sec" type="button" disabled={save.isPending} onClick={() => save.mutate({ s: current(), publish: false })}>
+          <Button variant="outline" type="button" disabled={save.isPending} onClick={() => save.mutate({ s: current(), publish: false })}>
             Salvar rascunho
-          </button>
-          <button className="btn dark" type="button" disabled={save.isPending} onClick={() => save.mutate({ s: current(), publish: true })}>
+          </Button>
+          <Button variant="dark" type="button" disabled={save.isPending} onClick={() => save.mutate({ s: current(), publish: true })}>
             <Icon name="check" />
             Publicar
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -264,7 +265,7 @@ function Editor({ row, hero }: { row: SectionRow; hero: "cobogo" | "janela" }) {
           <i />
           <span style={{ marginLeft: 8 }}>Pré-visualização</span>
           <span className="sp" />
-          <a className="btn ghost sm" href="/" target="_blank" rel="noopener" aria-label="Abrir o site">
+          <a className={buttonVariants({ variant: "ghost", size: "sm" })} href="/" target="_blank" rel="noopener" aria-label="Abrir o site">
             <Icon name="ext" />
           </a>
         </div>

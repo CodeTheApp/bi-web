@@ -1,4 +1,5 @@
 "use client";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { QueryClient, QueryClientProvider, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -6,6 +7,8 @@ import { useEffect, useState, type ReactNode } from "react";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
 import { getThreads, signOut } from "@/server/admin/actions";
 import type { Me } from "@/server/admin/types";
+import { cn } from "@/lib/utils";
+import { Alert, AlertDescription, AlertTitle } from "@/components/reui/alert";
 import { Icon, type IconName } from "./icons";
 import { ToastProvider, unwrap } from "./ui";
 
@@ -97,9 +100,9 @@ function Shell({ me, demo, realtime, children }: { me: Me; demo: boolean; realti
       </aside>
       <div className="main">
         <header className="top">
-          <button className="btn ghost burger" aria-label="Menu" onClick={() => setOpen((o) => !o)}>
+          <Button variant="ghost" className="burger" aria-label="Menu" onClick={() => setOpen((o) => !o)}>
             <Icon name="menu" />
-          </button>
+          </Button>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img className="tlg" src="/img/logo-cor.svg" alt="Brasília Iluminação" />
           <div className="crumb">
@@ -114,12 +117,19 @@ function Shell({ me, demo, realtime, children }: { me: Me; demo: boolean; realti
               }}
             />
           </label>
-          <a className="btn sec sm" href="/" target="_blank" rel="noopener">
+          <a className={cn(buttonVariants({ variant: "outline", size: "sm" }), "ver-site")} href="/" target="_blank" rel="noopener">
             <Icon name="ext" />
             Ver site
           </a>
         </header>
-        {demo && <div className="demo">Modo demonstração: sem Supabase configurado, os dados são de exemplo e somem ao reiniciar o servidor. E-mails não são enviados.</div>}
+        {demo && (
+          <div className="demo">
+            <Alert variant="warning" className="border-0 bg-transparent p-0">
+              <AlertTitle>Modo demonstração</AlertTitle>
+              <AlertDescription>Sem Supabase configurado, os dados são de exemplo e somem ao reiniciar o servidor. E-mails não são enviados.</AlertDescription>
+            </Alert>
+          </div>
+        )}
         <main className="view">{children}</main>
       </div>
     </div>

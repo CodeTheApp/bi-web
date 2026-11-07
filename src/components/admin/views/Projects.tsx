@@ -1,4 +1,7 @@
 "use client";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -9,9 +12,10 @@ import type { AdminProject } from "@/server/admin/types";
 import { Icon } from "../icons";
 import { DropZone, MediaPicker } from "../media";
 import { Grip, SortableItem, SortableList } from "../Sortable";
-import { Chip, ErrorBox, Modal, PageHead, Seg, Skeleton, unwrap, useToast } from "../ui";
+import { Chip, Choice, ErrorBox, PageHead, Seg, Skeleton, unwrap, useToast } from "../ui";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
-export function NewProjectButton({ className = "btn pri" }: { className?: string }) {
+export function NewProjectButton() {
   const router = useRouter();
   const toast = useToast();
   const m = useMutation({
@@ -20,10 +24,10 @@ export function NewProjectButton({ className = "btn pri" }: { className?: string
     onError: (e) => toast(e.message),
   });
   return (
-    <button className={className} onClick={() => m.mutate()} disabled={m.isPending}>
+    <Button onClick={() => m.mutate()} disabled={m.isPending}>
       <Icon name="plus" />
       Novo projeto
-    </button>
+    </Button>
   );
 }
 
@@ -58,6 +62,7 @@ export function ProjectList() {
       ) : (
         <SortableList
           grid
+          className="pcards"
           items={list}
           getId={(p) => p.id}
           onMove={(next) => {
@@ -65,9 +70,8 @@ export function ProjectList() {
             reorder.mutate(next.map((p) => p.id));
           }}
         >
-          <div className="pcards">
             {list.map((p, i) => (
-              <SortableItem key={p.id} id={p.id} className="card pc" onClick={() => router.push(`/admin/projetos/${p.id}`)}>
+              <SortableItem key={p.id} value={p.id} className="card pc" onClick={() => router.push(`/admin/projetos/${p.id}`)}>
                 <div className="im" style={{ backgroundImage: p.cover ? `url("${p.cover}")` : undefined }}>
                   <Chip s={p.status} />
                   <span className="n">{String(i + 1).padStart(2, "0")}</span>
@@ -89,7 +93,6 @@ export function ProjectList() {
                 Novo projeto
               </span>
             </button>
-          </div>
         </SortableList>
       )}
     </>
@@ -182,7 +185,7 @@ function Form({ initial }: { initial: AdminProject }) {
     <>
       <div className="ph">
         <div>
-          <Link className="btn ghost sm" href="/admin/projetos" style={{ marginLeft: -10 }}>
+          <Link className={buttonVariants({ variant: "ghost", size: "sm" })} href="/admin/projetos" style={{ marginLeft: -10 }}>
             <Icon name="back" />
             Projetos
           </Link>
@@ -192,18 +195,18 @@ function Form({ initial }: { initial: AdminProject }) {
           <Chip s={p.status} />
           {dirty && <span className="muted" style={{ fontSize: 12 }}>Alterações não salvas</span>}
           {initial.status === "publicado" && (
-            <a className="btn sec" href={`/projetos/${initial.slug}`} target="_blank" rel="noopener">
+            <a className={buttonVariants({ variant: "outline" })} href={`/projetos/${initial.slug}`} target="_blank" rel="noopener">
               <Icon name="eye" />
               Ver no site
             </a>
           )}
-          <button className="btn sec" disabled={save.isPending} onClick={() => save.mutate("rascunho")}>
+          <Button variant="outline" disabled={save.isPending} onClick={() => save.mutate("rascunho")}>
             Salvar rascunho
-          </button>
-          <button className="btn dark" disabled={save.isPending} onClick={() => save.mutate("publicado")}>
+          </Button>
+          <Button variant="dark" disabled={save.isPending} onClick={() => save.mutate("publicado")}>
             <Icon name="check" />
             {p.status === "publicado" ? "Atualizar publicação" : "Publicar"}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -212,29 +215,25 @@ function Form({ initial }: { initial: AdminProject }) {
           <div className="card pad stack">
             <label className="f">
               Título
-              <input className="in" value={p.title} onChange={(e) => set("title", e.target.value)} />
+              <Input className="in" value={p.title} onChange={(e) => set("title", e.target.value)} />
             </label>
             <div className="grid2">
-              <label className="f">
+              <div className="f" style={{ display: "flex", flexDirection: "column", gap: 6, fontWeight: 600, fontSize: 12.5 }}>
                 Categoria
-                <select className="in" value={p.category} onChange={(e) => set("category", e.target.value)}>
-                  {(CATS.includes(p.category) ? CATS : [p.category, ...CATS]).map((c) => (
-                    <option key={c}>{c}</option>
-                  ))}
-                </select>
-              </label>
+                <Choice label="Categoria" value={p.category} options={(CATS.includes(p.category) ? CATS : [p.category, ...CATS]).map((c) => [c, c] as [string, string])} onChange={(v) => set("category", v)} />
+              </div>
               <label className="f">
                 Ano
-                <input className="in" value={p.year} inputMode="numeric" onChange={(e) => set("year", e.target.value)} />
+                <Input className="in" value={p.year} inputMode="numeric" onChange={(e) => set("year", e.target.value)} />
               </label>
             </div>
             <label className="f">
               Local
-              <input className="in" value={p.location} onChange={(e) => set("location", e.target.value)} />
+              <Input className="in" value={p.location} onChange={(e) => set("location", e.target.value)} />
             </label>
             <label className="f">
               Texto do projeto<small>Aparece em destaque na página do projeto e no portfólio</small>
-              <textarea className="in" value={p.summary} onChange={(e) => set("summary", e.target.value)} rows={4} />
+              <Textarea className="in" value={p.summary} onChange={(e) => set("summary", e.target.value)} rows={4} />
             </label>
             <div className="f" style={{ display: "flex", flexDirection: "column", gap: 6, fontWeight: 600, fontSize: 12.5 }}>
               Escopo<small className="hint">Enter para adicionar</small>
@@ -270,25 +269,27 @@ function Form({ initial }: { initial: AdminProject }) {
                 arraste para ordenar · “largura cheia” e “em par” abrem a página; “faixa” vai para a faixa horizontal
               </span>
               <span className="sp" />
-              <button className="btn sec sm" onClick={() => setPicker("gallery")}>
+              <Button variant="outline" size="sm" onClick={() => setPicker("gallery")}>
                 <Icon name="plus" />
                 Da biblioteca
-              </button>
+              </Button>
             </div>
-            <SortableList grid items={gal} getId={(g) => g._id} onMove={setG}>
-              <div className="gal">
+            <SortableList grid items={gal} getId={(g) => g._id} onMove={setG} className="gal">
                 {gal.map((g, i) => (
-                  <SortableItem key={g._id} id={g._id} className="gi" whole>
-                    <div className="im" style={{ backgroundImage: `url("${g.url}")` }}>
+                  <SortableItem key={g._id} value={g._id} className="gi">
+                    <Grip className="im" style={{ backgroundImage: `url("${g.url}")` }}>
                       {i === 0 && <span className="cv">Abertura</span>}
                       <span className="ord">{i + 1}</span>
-                    </div>
-                    <div className="bt" onPointerDown={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
-                      <select value={g.layout} aria-label="Formato" onChange={(e) => setG(gal.map((x) => (x._id === g._id ? { ...x, layout: e.target.value as GalleryLayout } : x)))}>
-                        <option value="cheia">Largura cheia</option>
-                        <option value="par">Em par</option>
-                        <option value="faixa">Faixa lateral</option>
-                      </select>
+                    </Grip>
+                    <div className="bt">
+                      <Choice<GalleryLayout>
+                        label="Formato"
+                        size="sm"
+                        className="w-full min-w-0 flex-1 text-xs"
+                        value={g.layout}
+                        options={[["cheia", "Largura cheia"], ["par", "Em par"], ["faixa", "Faixa lateral"]]}
+                        onChange={(v) => setG(gal.map((x) => (x._id === g._id ? { ...x, layout: v } : x)))}
+                      />
                       <button title="Remover" aria-label="Remover foto" onClick={() => setG(gal.filter((x) => x._id !== g._id))}>
                         <Icon name="trash" />
                       </button>
@@ -296,7 +297,6 @@ function Form({ initial }: { initial: AdminProject }) {
                   </SortableItem>
                 ))}
                 <DropZone onDone={(ms) => setG([...gal, ...ms.map((m) => ({ url: m.url, alt: m.alt || p.title, layout: "faixa" as const, _id: `g${++gseq}` }))])} />
-              </div>
             </SortableList>
           </div>
         </div>
@@ -305,10 +305,10 @@ function Form({ initial }: { initial: AdminProject }) {
           <div className="card pad stack">
             <b>Capa</b>
             <div style={{ aspectRatio: "4/3", borderRadius: 12, background: p.cover ? `url("${p.cover}") center/cover` : "var(--bege-2)" }} />
-            <button className="btn sec" onClick={() => setPicker("cover")}>
+            <Button variant="outline" onClick={() => setPicker("cover")}>
               <Icon name="image" />
               Trocar capa
-            </button>
+            </Button>
           </div>
           <div className="card pad stack">
             <b>Status</b>
@@ -323,10 +323,10 @@ function Form({ initial }: { initial: AdminProject }) {
               <div className="d">{(p.summary || "Escreva um texto para o projeto.").slice(0, 150)}</div>
             </div>
           </div>
-          <button className="btn ghost" style={{ alignSelf: "flex-start", color: "#A33" }} onClick={() => setConfirm(true)}>
+          <Button variant="ghost" style={{ alignSelf: "flex-start", color: "#A33" }} onClick={() => setConfirm(true)}>
             <Icon name="trash" />
             Excluir projeto
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -341,20 +341,20 @@ function Form({ initial }: { initial: AdminProject }) {
           }
         }}
       />
-      <Modal open={confirm} onClose={() => setConfirm(false)}>
-        <h2 className="serif" style={{ fontSize: 26, marginBottom: 8 }}>
-          Excluir “{p.title}”?
-        </h2>
-        <p className="muted">O projeto sai do portfólio. As fotos continuam na biblioteca.</p>
-        <div className="row" style={{ justifyContent: "flex-end", marginTop: 20 }}>
-          <button className="btn sec" onClick={() => setConfirm(false)}>
-            Cancelar
-          </button>
-          <button className="btn dark" style={{ background: "#A33" }} disabled={del.isPending} onClick={() => del.mutate()}>
-            Excluir
-          </button>
-        </div>
-      </Modal>
+      <AlertDialog open={confirm} onOpenChange={setConfirm}>
+        <AlertDialogContent className="rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-heading text-[26px] font-normal">Excluir “{p.title}”?</AlertDialogTitle>
+            <AlertDialogDescription>O projeto sai do portfólio. As fotos continuam na biblioteca.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" className="bg-destructive text-white hover:bg-destructive/90" disabled={del.isPending} onClick={() => del.mutate()}>
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

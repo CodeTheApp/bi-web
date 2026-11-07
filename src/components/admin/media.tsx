@@ -1,6 +1,8 @@
 "use client";
+import { Button } from "@/components/ui/button";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRef, useState } from "react";
+import { useState } from "react";
+import { useFileUpload } from "@/hooks/use-file-upload";
 import { createUpload, getMedia, registerMedia } from "@/server/admin/actions";
 import type { MediaItem } from "@/server/admin/types";
 import { Icon } from "./icons";
@@ -60,58 +62,69 @@ export function useUpload() {
   return { upload, progress };
 }
 
-export function UploadButton({ onDone, label = "Enviar fotos", className = "btn pri" }: { onDone?: (m: MediaItem[]) => void; label?: string; className?: string }) {
-  const input = useRef<HTMLInputElement>(null);
+type BtnProps = { variant?: "default" | "outline" | "dark" | "ghost"; size?: "default" | "sm" };
+
+/** Botão de envio (seletor de arquivos da ReUI: tipo e tamanho validados antes de subir). */
+export function UploadButton({ onDone, label = "Enviar fotos", variant = "default", size = "default" }: { onDone?: (m: MediaItem[]) => void; label?: string } & BtnProps) {
   const { upload, progress } = useUpload();
+  const toast = useToast();
+  const [, fu] = useFileUpload({
+    accept: "image/*",
+    multiple: true,
+    maxFiles: 12,
+    maxSize: 25 * 1024 * 1024,
+    onFilesAdded: async (added) => {
+      const done = await upload(added.map((f) => f.file).filter((f): f is File => f instanceof File));
+      fu.clearFiles();
+      onDone?.(done);
+    },
+    onError: (errs) => errs[0] && toast(errs[0]),
+  });
   return (
     <>
-      <button className={className} type="button" onClick={() => input.current?.click()} disabled={progress !== null}>
+      <Button type="button" variant={variant} size={size} onClick={fu.openFileDialog} disabled={progress !== null}>
         <Icon name="upload" />
         {progress !== null ? `Enviando… ${Math.round(progress * 100)}%` : label}
-      </button>
-      <input
-        ref={input}
-        type="file"
-        accept="image/*"
-        multiple
-        hidden
-        onChange={async (e) => {
-          const files = e.target.files;
-          if (files) onDone?.(await upload(files));
-          e.target.value = "";
-        }}
-      />
+      </Button>
+      <input {...fu.getInputProps()} className="sr-only" aria-label={label} />
     </>
   );
 }
 
-/** Área para soltar fotos (ou clicar). */
+/** Área para soltar fotos (ou clicar), com o arrastar-e-soltar da ReUI. */
 export function DropZone({ onDone }: { onDone: (m: MediaItem[]) => void }) {
-  const input = useRef<HTMLInputElement>(null);
   const { upload, progress } = useUpload();
-  const [over, setOver] = useState(false);
+  const toast = useToast();
+  const [{ isDragging }, fu] = useFileUpload({
+    accept: "image/*",
+    multiple: true,
+    maxFiles: 12,
+    maxSize: 25 * 1024 * 1024,
+    onFilesAdded: async (added) => {
+      const done = await upload(added.map((f) => f.file).filter((f): f is File => f instanceof File));
+      fu.clearFiles();
+      onDone(done);
+    },
+    onError: (errs) => errs[0] && toast(errs[0]),
+  });
   return (
     <div
-      className={`drop${over ? " on" : ""}`}
+      className={`drop${isDragging ? " on" : ""}`}
       role="button"
       tabIndex={0}
-      onClick={() => input.current?.click()}
-      onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && input.current?.click()}
-      onDragOver={(e) => {
-        e.preventDefault();
-        setOver(true);
-      }}
-      onDragLeave={() => setOver(false)}
-      onDrop={async (e) => {
-        e.preventDefault();
-        setOver(false);
-        onDone(await upload(e.dataTransfer.files));
-      }}
+      onClick={fu.openFileDialog}
+      onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && fu.openFileDialog()}
+      onDragEnter={fu.handleDragEnter}
+      onDragLeave={fu.handleDragLeave}
+      onDragOver={fu.handleDragOver}
+      onDrop={fu.handleDrop}
     >
       <div>
         <Icon name="upload" />
         <span style={{ display: "block", marginTop: 6 }}>
-          {progress !== null ? `Enviando… ${Math.round(progress * 100)}%` : (
+          {progress !== null ? (
+            `Enviando… ${Math.round(progress * 100)}%`
+          ) : (
             <>
               Arraste fotos aqui
               <br />
@@ -120,17 +133,7 @@ export function DropZone({ onDone }: { onDone: (m: MediaItem[]) => void }) {
           )}
         </span>
       </div>
-      <input
-        ref={input}
-        type="file"
-        accept="image/*"
-        multiple
-        hidden
-        onChange={async (e) => {
-          if (e.target.files) onDone(await upload(e.target.files));
-          e.target.value = "";
-        }}
-      />
+      <input {...fu.getInputProps()} className="sr-only" aria-label="Enviar fotos" onClick={(e) => e.stopPropagation()} />
     </div>
   );
 }
@@ -139,16 +142,9 @@ export function DropZone({ onDone }: { onDone: (m: MediaItem[]) => void }) {
 export function MediaPicker({ open, onClose, onPick }: { open: boolean; onClose: () => void; onPick: (m: MediaItem) => void }) {
   const q = useQuery({ queryKey: ["media"], queryFn: () => unwrap(getMedia()), enabled: open });
   return (
-    <Modal open={open} onClose={onClose} wide>
-      <div className="row" style={{ marginBottom: 16 }}>
-        <h2 className="serif" style={{ fontSize: 26 }}>
-          Escolher da biblioteca
-        </h2>
-        <span className="sp" />
-        <UploadButton className="btn sec sm" label="Enviar nova" onDone={(m) => m[0] && (onPick(m[0]), onClose())} />
-        <button className="btn ghost" onClick={onClose} aria-label="Fechar">
-          <Icon name="x" />
-        </button>
+    <Modal open={open} onClose={onClose} wide title="Escolher da biblioteca" description="Clique numa foto para usar, ou envie uma nova.">
+      <div className="row" style={{ marginBottom: 4 }}>
+        <UploadButton variant="outline" size="sm" label="Enviar nova" onDone={(m) => m[0] && (onPick(m[0]), onClose())} />
       </div>
       <div className="mg" style={{ gridTemplateColumns: "repeat(auto-fill,minmax(130px,1fr))" }}>
         {!q.data && [0, 1, 2, 3, 4, 5].map((i) => <Skeleton key={i} h={130} />)}

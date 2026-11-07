@@ -1,10 +1,12 @@
 /* Estilos do painel — portados do protótipo aprovado. Tudo fica sob .adm para não vazar no site. */
+/* Em @layer components: os utilitários do Tailwind (shadcn/ReUI) continuam com a palavra final. */
+@layer components {
 .adm{--ambar-golden:#F9A226;--ambar:#E68907;--ambar-queimado:#B76B02;--marrom-calmo:#8E461F;--marrom-intenso:#592D1D;--marrom-escuro:#291007;--preto:#120400;--bege:#FFF8F5;--bege-2:#F5EBE2;--branco:#FFFBFB;
   --bg:#FBF6F1;--card:#FFFFFF;--ink:#291007;--muted:#7A6A61;--line:#EDE3DA;--line-2:#E2D5C9;
   --ok:#2F7D4F;--ok-bg:#E5F3EA;--warn:#A86400;--warn-bg:#FDF1DD;--info:#3D5A80;--info-bg:#E6EEF7;--off:#7A6A61;--off-bg:#F1EBE5;
   --display:var(--font-belleza),"Belleza",Georgia,serif;--texto:var(--font-montserrat),"Montserrat",system-ui,sans-serif;--r:14px;--ease:cubic-bezier(.16,.84,.44,1)}
 .adm, .adm *{box-sizing:border-box}
-.adm{margin:0;background:var(--bg);color:var(--ink);font:400 14px/1.55 var(--texto);-webkit-font-smoothing:antialiased}
+.adm-root{margin:0;background:var(--bg);color:var(--ink);font:400 14px/1.55 var(--texto);-webkit-font-smoothing:antialiased;min-height:100vh}
 .adm button,.adm input,.adm select,.adm textarea{font:inherit;color:inherit}
 .adm a{color:inherit}
 .adm img{display:block;max-width:100%}
@@ -49,57 +51,21 @@
 .adm .ph h1{font:400 36px/1.05 var(--display)}
 .adm .ph p{margin:6px 0 0;color:var(--muted)}
 .adm .burger{display:none}
-.adm .btn{display:inline-flex;align-items:center;gap:8px;border:0;border-radius:10px;padding:10px 16px;font-weight:600;font-size:13px;cursor:pointer;text-decoration:none;transition:background .2s,box-shadow .2s,transform .2s;white-space:nowrap}
-.adm .btn:active{transform:translateY(1px)}
-.adm .btn.pri{background:var(--ambar);color:var(--marrom-escuro)}
-.adm .btn.pri:hover{background:var(--ambar-golden)}
-.adm .btn.dark{background:var(--marrom-escuro);color:var(--branco)}
-.adm .btn.dark:hover{background:var(--marrom-intenso)}
-.adm .btn.sec{background:var(--card);color:var(--ink);box-shadow:inset 0 0 0 1px var(--line-2)}
-.adm .btn.sec:hover{box-shadow:inset 0 0 0 1px var(--ambar)}
-.adm .btn.ghost{background:none;color:var(--muted);padding:8px 10px}
-.adm .btn.ghost:hover{background:var(--bege-2);color:var(--ink)}
-.adm .btn.sm{padding:7px 11px;font-size:12px;border-radius:8px}
 .adm .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r)}
 .adm .pad{padding:20px}
-.adm .chip{display:inline-flex;align-items:center;gap:6px;font:600 11px/1 var(--texto);padding:6px 9px;border-radius:99px;white-space:nowrap}
-.adm .chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
-.adm .chip.novo{background:var(--warn-bg);color:var(--warn)}
-.adm .chip.andamento{background:var(--info-bg);color:var(--info)}
-.adm .chip.respondido,.adm .chip.publicado{background:var(--ok-bg);color:var(--ok)}
-.adm .chip.arquivado,.adm .chip.oculto{background:var(--off-bg);color:var(--off)}
-.adm .chip.rascunho{background:var(--bege-2);color:var(--marrom-calmo)}
 .adm .tag{display:inline-block;font:500 11.5px/1 var(--texto);padding:6px 9px;border-radius:7px;background:var(--bege-2);color:var(--marrom-intenso)}
 .adm label.f{display:flex;flex-direction:column;gap:6px;font-weight:600;font-size:12.5px}
 .adm label.f small{font-weight:400;color:var(--muted)}
-.adm .in{width:100%;border:1px solid var(--line-2);border-radius:10px;padding:10px 12px;background:var(--card);outline:0;transition:border-color .2s,box-shadow .2s;font-weight:400;font-size:14px}
-.adm .in:focus{border-color:var(--ambar);box-shadow:0 0 0 3px rgba(230,137,7,.15)}
-.adm textarea.in{resize:vertical;min-height:84px;line-height:1.55}
 .adm .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .adm .stack{display:flex;flex-direction:column;gap:14px}
 .adm .row{display:flex;align-items:center;gap:10px}
 .adm .sp{flex:1}
 .adm .muted{color:var(--muted)}
-.adm .sw{position:relative;width:38px;height:22px;flex:0 0 auto}
-.adm .sw input{opacity:0;position:absolute;inset:0;cursor:pointer;margin:0}
-.adm .sw i{position:absolute;inset:0;border-radius:99px;background:var(--line-2);transition:background .2s;pointer-events:none}
-.adm .sw i::after{content:"";position:absolute;left:3px;top:3px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:transform .25s var(--ease)}
-.adm .sw input:checked+i{background:var(--ambar)}
-.adm .sw input:checked+i::after{transform:translateX(16px)}
-.adm .seg{display:inline-flex;background:var(--bege-2);border-radius:10px;padding:3px;gap:2px}
-.adm .seg button{border:0;background:none;padding:7px 12px;border-radius:8px;font-weight:600;font-size:12.5px;color:var(--muted);cursor:pointer}
-.adm .seg button.on{background:var(--card);color:var(--ink);box-shadow:0 1px 3px rgba(41,16,7,.1)}
 .adm .grip{cursor:grab;color:var(--line-2);display:grid;place-items:center}
 .adm .grip:hover{color:var(--muted)}
 .adm .dragging{opacity:.4}
 .adm .over{box-shadow:0 0 0 2px var(--ambar)!important}
 .adm .empty{padding:40px;text-align:center;color:var(--muted)}
-.adm .toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,20px);background:var(--marrom-escuro);color:var(--branco);padding:12px 18px;border-radius:12px;display:flex;align-items:center;gap:10px;font-weight:500;box-shadow:0 20px 40px -12px rgba(18,4,0,.5);opacity:0;pointer-events:none;transition:opacity .3s,transform .4s var(--ease);z-index:100}
-.adm .toast.on{opacity:1;transform:translate(-50%,0)}
-.adm .toast .ic{color:var(--ambar-golden)}
-.adm .modal{position:fixed;inset:0;background:rgba(18,4,0,.45);display:none;align-items:center;justify-content:center;z-index:60;padding:20px}
-.adm .modal.on{display:flex}
-.adm .modal .box{background:var(--card);border-radius:18px;width:min(760px,100%);max-height:86vh;overflow:auto;padding:24px;box-shadow:0 40px 80px -30px rgba(18,4,0,.6)}
 .adm .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
 .adm .stat{padding:18px 20px}
 .adm .stat small{color:var(--muted);font-weight:500}
@@ -182,10 +148,6 @@
 .adm .gi button:hover{background:var(--bege-2);color:var(--ink)}
 .adm .drop{border:1.5px dashed var(--line-2);border-radius:12px;display:grid;place-items:center;text-align:center;color:var(--muted);font-size:12.5px;min-height:150px;cursor:pointer;padding:12px}
 .adm .drop:hover{border-color:var(--ambar);color:var(--ambar-queimado)}
-.adm .chipsin{display:flex;flex-wrap:wrap;gap:6px;border:1px solid var(--line-2);border-radius:10px;padding:7px;background:var(--card)}
-.adm .chipsin .tag{display:inline-flex;align-items:center;gap:6px}
-.adm .chipsin .tag button{border:0;background:none;padding:0;cursor:pointer;color:var(--muted);line-height:1}
-.adm .chipsin input{border:0;outline:0;flex:1;min-width:120px;padding:4px}
 .adm .seo{background:var(--bg);border-radius:12px;padding:14px}
 .adm .seo .u{color:var(--ok);font-size:12px}
 .adm .seo .t{color:#1a0dab;font-size:16px;margin:2px 0}
@@ -274,7 +236,7 @@
 .adm .login .mlg{display:block}
 .adm .top .tlg{display:block}
 .adm .top .crumb{display:none}
-.adm .top .btn.sec.sm{margin-left:auto}
+.adm .top .ver-site{margin-left:auto}
 .adm .tbl th:nth-child(2),.adm .tbl td:nth-child(2){display:none}
 .adm .stats{grid-template-columns:1fr 1fr}
 .adm .ph h1{font-size:30px}
@@ -284,23 +246,21 @@
 
 
 /* ===== complementos do painel em Next.js ===== */
-.adm{min-height:100vh}
 .adm .side nav a{color:inherit}
 .adm .demo{background:var(--warn-bg);color:var(--warn);font-size:12.5px;padding:8px 32px;border-bottom:1px solid var(--line)}
 .adm .skel{background:linear-gradient(90deg,var(--bege-2),#fff,var(--bege-2));background-size:200% 100%;animation:sk 1.2s linear infinite;border-radius:10px}
 @keyframes sk{to{background-position:-200% 0}}
 .adm .err{color:#A33;font-size:12.5px}
-.adm .btn[disabled]{opacity:.55;cursor:not-allowed}
 .adm .hint{font-size:12px;color:var(--muted);font-weight:400}
 .adm .hint code{background:var(--bege-2);padding:1px 5px;border-radius:5px;font-size:11.5px}
 .adm .drop.on{border-color:var(--ambar);color:var(--ambar-queimado);background:rgba(230,137,7,.05)}
 .adm .prog{height:3px;background:var(--line);border-radius:3px;overflow:hidden;margin-top:6px}
 .adm .prog i{display:block;height:100%;background:var(--ambar);transition:width .2s}
-.adm .modal .box .mg button.card{border:1px solid var(--line)}
 .adm .msg .html{all:revert;font:inherit}
 .adm .ib-l,.adm .ib-r{min-width:0}
 @media (max-width:900px){
   .adm .inbox{grid-template-columns:minmax(0,1fr)}
   .adm .editor .ft{flex-wrap:wrap}
   .adm .editor .ft [role=status]{flex-basis:100%}
+}
 }

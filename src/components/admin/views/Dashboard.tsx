@@ -1,8 +1,10 @@
 "use client";
+import { buttonVariants } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getDashboard } from "@/server/admin/actions";
+import { Timeline, TimelineDate, TimelineHeader, TimelineIndicator, TimelineItem, TimelineSeparator, TimelineTitle } from "@/components/reui/timeline";
 import { Icon } from "../icons";
 import { ago, Chip, ErrorBox, initials, Skeleton, unwrap } from "../ui";
 import { NewProjectButton } from "./Projects";
@@ -57,7 +59,7 @@ export function Dashboard({ name }: { name: string }) {
               <div className="row" style={{ paddingRight: 16 }}>
                 <h3>Últimas mensagens</h3>
                 <span className="sp" />
-                <Link className="btn ghost sm" href="/admin/mensagens">
+                <Link className={buttonVariants({ variant: "ghost", size: "sm" })} href="/admin/mensagens">
                   Ver todas
                 </Link>
               </div>
@@ -90,17 +92,19 @@ export function Dashboard({ name }: { name: string }) {
               </div>
               <div className="card">
                 <h3>Atividade recente</h3>
-                <ul className="lst log">
+                <Timeline defaultValue={d.log.length} className="px-5 pb-5">
+                  {d.log.length === 0 && <p className="muted">Nada por aqui ainda.</p>}
                   {d.log.map((l, i) => (
-                    <li key={i}>
-                      <Icon name="clock" />
-                      <span className="t">
-                        <span style={{ color: "var(--ink)" }}>{l.text}</span>
-                      </span>
-                      <small className="muted">{ago(l.at)}</small>
-                    </li>
+                    <TimelineItem key={i} step={i + 1} className="group-data-[orientation=vertical]/timeline:ms-6">
+                      <TimelineHeader>
+                        <TimelineSeparator className="group-data-[orientation=vertical]/timeline:-left-5 group-data-[orientation=vertical]/timeline:h-[calc(100%-1.25rem)] group-data-[orientation=vertical]/timeline:translate-y-5" />
+                        <TimelineDate className="mb-0.5 text-xs">{ago(l.at)}</TimelineDate>
+                        <TimelineTitle className="text-[13px] font-medium">{l.text}</TimelineTitle>
+                        <TimelineIndicator className="flex size-3 items-center justify-center border-primary bg-primary/20 group-data-[orientation=vertical]/timeline:-left-5" />
+                      </TimelineHeader>
+                    </TimelineItem>
                   ))}
-                </ul>
+                </Timeline>
               </div>
             </div>
           </div>
