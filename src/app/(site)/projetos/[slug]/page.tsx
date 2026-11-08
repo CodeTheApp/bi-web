@@ -111,12 +111,18 @@ export default async function ProjectPage({ params }: PageProps<"/projetos/[slug
               <span className="label">Em cena</span>
               <h2 className="h-m" style={{ marginTop: 18, color: "var(--marrom-intenso)" }}>Cada ambiente, uma cena de luz.</h2>
             </div>
-            <span className="count">
-              <span id="sNow">01</span>
-              <span style={{ opacity: 0.35 }}> / {String(strip.length).padStart(2, "0")}</span>
-            </span>
+            <div className="count-wrap">
+              <span className="count">
+                <span id="sNow">01</span>
+                <span style={{ opacity: 0.35 }}> / {String(strip.length).padStart(2, "0")}</span>
+              </span>
+              <div className="nav-arrows">
+                <button id="railPrev" type="button" aria-label="Foto anterior">←</button>
+                <button id="railNext" type="button" aria-label="Próxima foto">→</button>
+              </div>
+            </div>
           </div>
-          <div className="rail" id="rail">
+          <div className="rail" id="rail" tabIndex={0} aria-label="Fotos do projeto, role para o lado">
             {strip.map((g, i) => (
               <figure key={g.url + i}>
                 <div className="im">
@@ -140,7 +146,7 @@ export default async function ProjectPage({ params }: PageProps<"/projetos/[slug
             Você jogou <span className="amber">luz</span> sobre algo que não passa mais despercebido e se valoriza.
           </p>
           <div className="acts">
-            <a className="btn" href="/#contato" data-magnetic=".3">
+            <a className="btn" href="/#contato">
               Quero um projeto assim <span className="ar">→</span>
             </a>
             <a className="ulink" style={{ color: "var(--ambar-queimado)" }} href={waLink(settings, `Olá! Vi o projeto ${p.title} no site.`)} target="_blank" rel="noopener">
@@ -151,7 +157,7 @@ export default async function ProjectPage({ params }: PageProps<"/projetos/[slug
       </section>
 
       {next && next.slug !== p.slug && (
-        <a className="next" id="next" href={`/projetos/${next.slug}`} data-nav="dark" data-cursor="Abrir">
+        <a className="next" id="next" href={`/projetos/${next.slug}`} data-nav="dark">
           <div className="bg">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={next.cover} alt="" loading="lazy" />

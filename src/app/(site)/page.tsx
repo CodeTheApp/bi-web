@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { CobogoWall } from "@/components/site/home/CobogoWall";
 import { ContactForm } from "@/components/site/home/ContactForm";
 import { Faq } from "@/components/site/home/Faq";
-import { Hero } from "@/components/site/home/Hero";
+import { Hero, type HeroSlide } from "@/components/site/home/Hero";
 import { HomeScenes } from "@/components/site/home/HomeScenes";
 import { Testimonials } from "@/components/site/home/Testimonials";
 import { PageMotion } from "@/components/site/motion/PageMotion";
@@ -46,12 +46,24 @@ const nn = (i: number) => String(i + 1).padStart(2, "0");
 export default async function Home() {
   const { sections: S, settings, projects, testimonials, faqs } = await getContent();
   const wa = waLink(settings);
-  const heroProject = projects.find((p) => p.cover === S.hero.image || p.gallery.some((g) => g.url === S.hero.image)) ?? projects[0];
+  // hero: a foto escolhida no painel e as capas de mais dois projetos, cada uma com o crédito do projeto
+  const creditFor = (url: string) => {
+    const p = projects.find((x) => x.cover === url || x.gallery.some((g) => g.url === url));
+    return p ? { title: p.title, place: p.location || p.category, href: `/projetos/${p.slug}` } : null;
+  };
+  const heroImage = S.hero.image || projects[0]?.cover || "/img/hero.jpg";
+  const heroSlides: HeroSlide[] = [
+    { src: heroImage, alt: creditFor(heroImage)?.title ?? "Projeto de iluminação", credit: creditFor(heroImage) },
+    ...projects
+      .filter((p) => p.cover && p.cover !== heroImage && creditFor(heroImage)?.href !== `/projetos/${p.slug}`)
+      .slice(0, 2)
+      .map((p) => ({ src: p.cover, alt: p.title, credit: { title: p.title, place: p.location || p.category, href: `/projetos/${p.slug}` } })),
+  ];
   const stepCaptions = S.lumi.items.map((it, i) => `${nn(i)} — ${it.title}`);
 
   return (
     <main>
-      <Hero variant={settings.hero} section={S.hero} credit={heroProject ? { title: heroProject.title, href: `/projetos/${heroProject.slug}` } : null} />
+      <Hero section={S.hero} slides={heroSlides} />
 
       {S.quem.visible && (
         <section className="intro" id="quem-somos">
@@ -102,16 +114,16 @@ export default async function Home() {
               <span className="label">{S.formas.label}</span>
               <h2 className="h-m" style={{ marginTop: 20, color: "var(--marrom-intenso)" }}>{S.formas.title}</h2>
             </div>
-            <div className="track" id="track">
+            <div className="track" id="track" data-stagger>
               <div className="intro-panel">
                 <div>
                   <span className="label">{S.formas.label}</span>
                   <h2 className="h-l" style={{ marginTop: 26, color: "var(--marrom-intenso)" }} data-split>{S.formas.title}</h2>
                   <p>{S.formas.text}</p>
                 </div>
-                <span className="ulink" style={{ color: "var(--ambar-queimado)" }}>
-                  Arraste ou role <span className="ar">→</span>
-                </span>
+                <a className="ulink" style={{ color: "var(--ambar-queimado)" }} href="#contato">
+                  Não sabe qual escolher? Fale com a gente <span className="ar">→</span>
+                </a>
               </div>
               {S.formas.items.map((it, i) => {
                 const last = i === S.formas.items.length - 1 && i === 3;
@@ -140,10 +152,6 @@ export default async function Home() {
                   </article>
                 );
               })}
-              <div style={{ flex: "0 0 var(--gutter)" }} />
-            </div>
-            <div className="prog">
-              <i id="modesProg" />
             </div>
           </div>
         </section>
@@ -213,7 +221,7 @@ export default async function Home() {
                 ))}
               </div>
               <div className="cta">
-                <a className="btn" href="#contato" data-magnetic=".3">
+                <a className="btn" href="#contato">
                   {S.lumi.cta || "Faça seu orçamento"} <span className="ar">→</span>
                 </a>
               </div>
@@ -251,7 +259,7 @@ export default async function Home() {
             </div>
             {projects.map((p, i) => (
               <article className={`proj${i % 2 ? " rev" : ""}`} key={p.slug}>
-                <a className="media" href={`/projetos/${p.slug}`} data-clip data-cursor="Ver projeto">
+                <a className="media" href={`/projetos/${p.slug}`} data-clip>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={p.cover} alt={p.title} data-parallax="8" loading="lazy" />
                 </a>
@@ -278,7 +286,7 @@ export default async function Home() {
               <h2 className="h-l" style={{ marginTop: 24, color: "var(--marrom-intenso)" }} data-split>{S.loja.title}</h2>
               <p data-up>{rich(S.loja.text)}</p>
               <div className="acts" data-up>
-                <a className="btn" href={settings.shopUrl} target="_blank" rel="noopener" data-magnetic=".3">
+                <a className="btn" href={settings.shopUrl} target="_blank" rel="noopener">
                   {S.loja.cta || "Visite a loja"} <span className="ar">↗</span>
                 </a>
                 <a className="ulink" style={{ color: "var(--ambar-queimado)" }} href={wa} target="_blank" rel="noopener">
@@ -288,7 +296,7 @@ export default async function Home() {
             </div>
             <div className="prods">
               {PRODS.map(([src, alt]) => (
-                <a key={src} href={settings.shopUrl} target="_blank" rel="noopener" data-clip data-cursor="Loja ↗">
+                <a key={src} href={settings.shopUrl} target="_blank" rel="noopener" data-clip>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={src} alt={alt} loading="lazy" />
                 </a>

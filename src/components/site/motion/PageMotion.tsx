@@ -1,6 +1,6 @@
 "use client";
 import { useEffect } from "react";
-import { gsap, magnetic, motion, prefersReduced, reveals, ScrollTrigger, scrollToEl } from "./engine";
+import { gsap, motion, prefersReduced, reveals, ScrollTrigger, scrollToEl } from "./engine";
 
 /**
  * Revelações genéricas da página. Fica por último na página: os efeitos dos irmãos anteriores
@@ -12,7 +12,6 @@ export function PageMotion() {
     if (!scope) return;
     if (prefersReduced()) return;
     const ctx = gsap.context(() => reveals(scope), scope);
-    const offMag = magnetic(document.body);
     ScrollTrigger.sort();
     ScrollTrigger.refresh();
     motion.lenis?.resize();
@@ -22,7 +21,6 @@ export function PageMotion() {
     if (id) t = window.setTimeout(() => scrollToEl(document.getElementById(decodeURIComponent(id)), true), 60);
     return () => {
       window.clearTimeout(t);
-      offMag();
       ctx.revert();
     };
   }, []);

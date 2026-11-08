@@ -61,7 +61,7 @@ export function Nav({ instagram, whatsapp }: { instagram: string; whatsapp: stri
             </li>
           ))}
         </ul>
-        <a className="btn cta" href="/#contato" data-magnetic=".25">
+        <a className="btn cta" href="/#contato">
           Fale conosco <span className="ar">→</span>
         </a>
         <button className="burger" aria-label={open ? "Fechar menu" : "Abrir menu"} aria-expanded={open} onClick={() => setOpen((o) => !o)}>
