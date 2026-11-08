@@ -1,0 +1,145 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+
+/* Tokens do Manual da Marca (paleta Iluminar) disponíveis como utilitários: bg-ambar, text-marrom-intenso… */
+@theme {
+  --color-ambar-golden: #f9a226;
+  --color-ambar: #e68907;
+  --color-ambar-queimado: #b76b02;
+  --color-marrom-calmo: #8e461f;
+  --color-marrom-intenso: #592d1d;
+  --color-marrom-escuro: #291007;
+  --color-preto: #120400;
+  --color-cinza: #bdb8b2;
+  --color-bege: #fff8f5;
+  --color-bege-2: #f5ebe2;
+  --color-branco: #fffbfb;
+  --color-painel: #fbf6f1;
+  --color-linha: #ede3da;
+  --color-linha-2: #e2d5c9;
+  --color-suave: #7a6a61;
+
+  --font-display: var(--font-belleza), "Belleza", Georgia, serif;
+
+  --ease-marca: cubic-bezier(0.16, 0.84, 0.44, 1);
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    @apply font-sans;
+  }
+  ::selection {
+    background: var(--color-ambar);
+    color: var(--color-marrom-escuro);
+  }
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  button:not(:disabled), [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
+@theme inline {
+  --font-heading: var(--font-belleza), "Belleza", Georgia, serif;
+  --font-sans: var(--font-montserrat), "Montserrat", system-ui, sans-serif;
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+  --color-invert-foreground: var(--invert-foreground);
+  --color-invert: var(--invert);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-warning: var(--warning);
+  --color-info-foreground: var(--info-foreground);
+  --color-info: var(--info);
+  --color-success-foreground: var(--success-foreground);
+  --color-success: var(--success);
+  --color-destructive-foreground: var(--destructive-foreground);
+}
+
+:root {
+  /* Tema dos componentes shadcn/ReUI do painel, nas cores do Manual da Marca */
+  --background: #fbf6f1;
+  --foreground: #291007;
+  --card: #ffffff;
+  --card-foreground: #291007;
+  --popover: #ffffff;
+  --popover-foreground: #291007;
+  --primary: #e68907;
+  --primary-foreground: #291007;
+  --secondary: #f5ebe2;
+  --secondary-foreground: #592d1d;
+  --muted: #f5ebe2;
+  --muted-foreground: #7a6a61;
+  --accent: #f5ebe2;
+  --accent-foreground: #291007;
+  --destructive: #a33333;
+  --border: #ede3da;
+  --input: #e2d5c9;
+  --ring: #e68907;
+  --chart-1: #f9a226;
+  --chart-2: #e68907;
+  --chart-3: #b76b02;
+  --chart-4: #8e461f;
+  --chart-5: #592d1d;
+  --radius: 0.625rem;
+  --sidebar: #291007;
+  --sidebar-foreground: #fffbfb;
+  --sidebar-primary: #f9a226;
+  --sidebar-primary-foreground: #291007;
+  --sidebar-accent: rgba(230, 137, 7, 0.16);
+  --sidebar-accent-foreground: #f9a226;
+  --sidebar-border: rgba(255, 251, 251, 0.08);
+  --sidebar-ring: #e68907;
+  --destructive-foreground: var(--color-red-800);
+  --success: #2f7d4f;
+  --success-foreground: #2f7d4f;
+  --info: #3d5a80;
+  --info-foreground: #3d5a80;
+  --warning: #a86400;
+  --warning-foreground: #a86400;
+  --invert: #291007;
+  --invert-foreground: #fffbfb;
+}
+
