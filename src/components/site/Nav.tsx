@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { MobileShopLinks, NavShop } from "./shop/NavShop";
 
 const LINKS = [
   ["/#quem-somos", "Quem somos"],
@@ -61,14 +62,17 @@ export function Nav({ instagram, whatsapp }: { instagram: string; whatsapp: stri
             </li>
           ))}
         </ul>
-        <a className="btn cta" href="/#contato">
-          Fale conosco <span className="ar">→</span>
-        </a>
-        <button className="burger" aria-label={open ? "Fechar menu" : "Abrir menu"} aria-expanded={open} onClick={() => setOpen((o) => !o)}>
-          <i />
-          <i />
-          <i />
-        </button>
+        <div className="nav-end">
+          <NavShop />
+          <a className="btn cta" href="/#contato">
+            Fale conosco <span className="ar">→</span>
+          </a>
+          <button className="burger" aria-label={open ? "Fechar menu" : "Abrir menu"} aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+            <i />
+            <i />
+            <i />
+          </button>
+        </div>
         <nav className="mmenu" aria-hidden={!open}>
           {LINKS.map(([href, label]) => (
             <a className="big" href={href} key={href} onClick={() => setOpen(false)}>
@@ -78,6 +82,7 @@ export function Nav({ instagram, whatsapp }: { instagram: string; whatsapp: stri
           <a className="big amber" href="/#contato" onClick={() => setOpen(false)}>
             Fale conosco
           </a>
+          <MobileShopLinks onNavigate={() => setOpen(false)} />
           <div className="meta">
             <span>
               {instagram}

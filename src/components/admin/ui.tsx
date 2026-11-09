@@ -39,10 +39,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 export const STATUS_LABEL: Record<string, string> = {
   novo: "Novo", andamento: "Em andamento", respondido: "Respondido", arquivado: "Arquivado", publicado: "Publicado", rascunho: "Rascunho", oculto: "Oculto",
   Ativo: "Ativo", "Convite pendente": "Convite pendente", fora: "Sem estoque",
+  aguardando_pagamento: "Aguardando pagamento", pago: "Pago", em_separacao: "Em separação", enviado: "Enviado", entregue: "Entregue", cancelado: "Cancelado",
 };
 const STATUS_VARIANT = {
   novo: "warning-light", "Convite pendente": "warning-light", andamento: "info-light", respondido: "success-light", publicado: "success-light", Ativo: "success-light",
   arquivado: "secondary", oculto: "secondary", rascunho: "primary-light", fora: "warning-light",
+  aguardando_pagamento: "warning-light", pago: "success-light", em_separacao: "info-light", enviado: "info-light", entregue: "success-light", cancelado: "secondary",
 } as const;
 
 export function Chip({ s, className }: { s: string; className?: string }) {

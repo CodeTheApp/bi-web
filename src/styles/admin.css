@@ -363,3 +363,14 @@
 .adm .imp-list a{color:var(--ambar-queimado);font-weight:600;text-decoration:underline;text-underline-offset:3px}
 @media (max-width:1180px){ .adm .dash.stockdash{grid-template-columns:minmax(0,1fr)} }
 }
+
+/* pedidos */
+.adm .ord-thumb{display:grid;place-items:center;width:44px;height:52px;border-radius:8px;overflow:hidden;background:var(--bege-2);flex:0 0 auto;color:var(--muted)}
+.adm .ord-thumb img{width:100%;height:100%;object-fit:cover}
+.adm .ord-tot{margin:0;padding:14px 20px 18px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:6px}
+.adm .ord-tot div{display:flex;justify-content:space-between;color:var(--muted)}
+.adm .ord-tot dd{margin:0;color:var(--ink)}
+.adm .ord-tot .big{padding-top:8px;margin-top:4px;border-top:1px dashed var(--line);font-weight:600;color:var(--ink)}
+.adm .ord-tot .big dd{font:400 26px/1 var(--display)}
+.adm .ord-kv p{margin:0;line-height:1.6}
+.adm .ord-kv a{color:var(--ambar-queimado)}

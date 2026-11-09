@@ -15,7 +15,7 @@ export async function generateMetadata({ searchParams }: PageProps<"/loja">): Pr
   const cat = CATEGORIES.find((c) => c.slug === s.categoria);
   return {
     title: cat ? `${cat.name} · Loja` : "Loja",
-    description: "Pendentes, lustres, arandelas e luminárias escolhidos com o olhar dos projetos da Brasília Iluminação. Escolha o acabamento e compre com uma consultora.",
+    description: "Pendentes, lustres, arandelas e luminárias escolhidos com o olhar dos projetos da Brasília Iluminação. Escolha o acabamento e compre online ou com uma consultora.",
     alternates: { canonical: cat ? `/loja?categoria=${cat.slug}` : "/loja" },
     // buscas e combinações de filtro não precisam aparecer no Google
     robots: s.q || s.cor.length || s.preco || s.pronta || s.video || s.ordem || s.pagina > 1 ? { index: false, follow: true } : undefined,
@@ -40,7 +40,7 @@ export default async function LojaPage({ searchParams }: PageProps<"/loja">) {
             A luz certa, <span className="amber">peça por peça.</span>
           </h1>
           <p data-up>
-            Pendentes, lustres, arandelas e luminárias escolhidos com o mesmo olhar dos nossos projetos. Escolha o acabamento e finalize com uma consultora pelo WhatsApp.
+            Pendentes, lustres, arandelas e luminárias escolhidos com o mesmo olhar dos nossos projetos. Escolha o acabamento e compre aqui, com Pix ou cartão, ou com uma consultora pelo WhatsApp.
           </p>
         </div>
       </section>
@@ -59,7 +59,7 @@ export default async function LojaPage({ searchParams }: PageProps<"/loja">) {
             {r.list.length ? (
               <div className="shop-grid">
                 {r.list.map((p, i) => (
-                  <ProductCard key={p.id} p={p} priority={i < 3} />
+                  <ProductCard key={p.id} p={p} priority={i < 4} />
                 ))}
               </div>
             ) : (

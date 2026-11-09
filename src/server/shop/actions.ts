@@ -1,0 +1,234 @@
+"use server";
+import { updateTag } from "next/cache";
+import { z } from "zod";
+import { canSell, variantLabel } from "@/lib/catalog/types";
+import { quoteShipping } from "@/lib/shop/shipping";
+import { addressSchema, profileSchema, type Address, type Order, type OrderItem, type PaymentMethod } from "@/lib/shop/types";
+import { run } from "@/server/admin/guard";
+import { getCatalog, CATALOG_TAG } from "@/server/catalog/public";
+import { getCatalogRepo } from "@/server/catalog/repo";
+import { paymentProvider } from "./payments";
+import { getShopRepo } from "./repo";
+
+/** Ações da loja (lado do cliente). Devolvem Result, como as do painel. */
+
+const email = z.string().trim().toLowerCase().email("Confira o e-mail.");
+const ids = z.array(z.string().min(1)).max(500);
+
+export async function shopSession() {
+  return run(async () => {
+    const shop = await getShopRepo();
+    const [customer, favorites] = await Promise.all([shop.me(), shop.favorites()]);
+    return { customer, favorites, demo: shop.mode === "demo" };
+  });
+}
+
+/* ---------------- entrar ---------------- */
+export async function requestCode(input: string) {
+  return run(async () => {
+    const shop = await getShopRepo();
+    const r = await shop.sendCode(email.parse(input));
+    return { demoCode: r.demoCode ?? null };
+  });
+}
+
+/** Confere o código e junta os favoritos que a pessoa marcou antes de entrar. */
+export async function confirmCode(input: string, code: string, localFavorites: string[] = []) {
+  return run(async () => {
+    const shop = await getShopRepo();
+    const c = await shop.verifyCode(email.parse(input), z.string().regex(/^\d{6}$/, "O código tem 6 números.").parse(code.trim()));
+    const favorites = await shop.setFavorites(ids.parse(localFavorites), []);
+    return { customer: c, favorites };
+  });
+}
+
+export async function googleSignIn(next: string, demoEmail?: string, demoName?: string, localFavorites: string[] = []) {
+  return run(async () => {
+    const shop = await getShopRepo();
+    const r = await shop.google(next.startsWith("/") ? next : "/conta", demoEmail ? email.parse(demoEmail) : undefined, demoName?.trim().slice(0, 120));
+    if (r.url) return { url: r.url, customer: null, favorites: [] as string[] };
+    const favorites = await shop.setFavorites(ids.parse(localFavorites), []);
+    return { url: null, customer: r.customer ?? null, favorites };
+  });
+}
+
+export async function signOutCustomer() {
+  return run(async () => (await getShopRepo()).signOut());
+}
+
+/* ---------------- conta ---------------- */
+export async function saveProfile(input: unknown) {
+  return run(async () => (await getShopRepo()).saveProfile(profileSchema.parse(input)));
+}
+export async function saveAddress(input: unknown) {
+  return run(async () => (await getShopRepo()).saveAddress(addressSchema.parse(input)));
+}
+export async function removeAddress(id: string) {
+  return run(async () => (await getShopRepo()).removeAddress(z.string().min(1).parse(id)));
+}
+
+/* ---------------- favoritos ---------------- */
+export async function setFavorite(productId: string, on: boolean) {
+  return run(async () => {
+    const shop = await getShopRepo();
+    const id = z.string().min(1).parse(productId);
+    return shop.setFavorites(on ? [id] : [], on ? [] : [id]);
+  });
+}
+
+/** Produtos favoritos para a página de favoritos (também funciona sem login, com a lista do navegador). */
+export async function favoriteProducts(list: string[]) {
+  return run(async () => {
+    const want = new Set(ids.parse(list));
+    return (await getCatalog()).filter((p) => want.has(p.id));
+  });
+}
+
+/* ---------------- sacola ---------------- */
+type Line = { variantId: string; qty: number };
+const lines = z.array(z.object({ variantId: z.string().min(1), qty: z.number().int().min(1).max(99) })).max(60);
+
+/**
+ * Confere a sacola com o catálogo de agora: preço atual, se ainda está à venda e quanto dá para levar.
+ * A sacola mora no navegador; quem decide preço e disponibilidade é sempre o servidor.
+ */
+async function quote(input: Line[]) {
+  const catalog = await getCatalog();
+  const out = lines.parse(input).map((l) => {
+    for (const p of catalog) {
+      const v = p.variants.find((x) => x.id === l.variantId);
+      if (!v) continue;
+      const sellable = canSell(v);
+      // pronta entrega sem saldo exato no site: limita a 1 por variante só quando esgotada; o servidor baixa o estoque no pagamento
+      const max = !sellable ? 0 : 99;
+      return {
+        variantId: v.id, productId: p.id, slug: p.slug, title: p.title, label: variantLabel(v, p.options), sku: v.sku, category: p.category,
+        image: (p.media.find((m) => m.variantId === v.id && m.kind === "imagem") ?? p.media.find((m) => m.kind === "imagem"))?.url ?? null,
+        priceCents: v.priceCents, qty: Math.min(l.qty, Math.max(max, 0)), available: sellable && v.priceCents != null && v.priceCents > 0,
+        reason: !sellable ? "Esgotado" : v.priceCents == null || v.priceCents <= 0 ? "Preço sob consulta" : "",
+        inStock: v.inStock, leadTimeDays: v.leadTimeDays, stockPolicy: v.stockPolicy,
+      };
+    }
+    return { variantId: l.variantId, productId: "", slug: "", title: "Peça indisponível", label: "", sku: "", category: "pendentes", image: null, priceCents: null, qty: 0, available: false, reason: "Não está mais na loja", inStock: false, leadTimeDays: null, stockPolicy: "estoque" as const };
+  });
+  const ok = out.filter((l) => l.available);
+  const subtotal = ok.reduce((s, l) => s + (l.priceCents ?? 0) * l.qty, 0);
+  return { lines: out, subtotal, units: ok.reduce((s, l) => s + l.qty, 0) };
+}
+
+export async function quoteCart(input: Line[]) {
+  return run(() => quote(input));
+}
+
+export async function shippingOptions(cep: string, input: Line[]) {
+  return run(async () => {
+    const q = await quote(input);
+    return quoteShipping(cep, q.subtotal, q.units);
+  });
+}
+
+/* ---------------- pedido e pagamento ---------------- */
+const cardSchema = z.object({
+  holder: z.string().trim().min(3, "Nome como está no cartão").max(80),
+  last4: z.string().regex(/^\d{4}$/),
+  brand: z.string().max(20),
+  installments: z.number().int().min(1).max(10),
+});
+const placeSchema = z.object({
+  items: lines.min(1, "Sua sacola está vazia."),
+  address: addressSchema.nullable(),
+  shippingId: z.string().min(1, "Escolha a entrega."),
+  method: z.enum(["pix", "cartao"]),
+  card: cardSchema.optional(),
+  notes: z.string().max(500).default(""),
+});
+
+/** Aprovação: baixa o estoque, registra no histórico e atualiza a loja (o produto pode sair, se esgotar). */
+async function markPaid(orderId: string, by: string) {
+  const shop = await getShopRepo();
+  const o = await shop.getOrder(orderId);
+  if (!o || o.status !== "aguardando_pagamento") return o;
+  const catalog = await getCatalogRepo();
+  await catalog.sell(o.items.map((i) => ({ variantId: i.variantId, qty: i.qty })), -1, `Pedido nº ${o.number}`);
+  const paid = await shop.updateOrder(
+    o.id,
+    { status: "pago", payment: o.payment ? { ...o.payment, status: "aprovado", paidAt: new Date().toISOString() } : null },
+    { status: "pago", at: new Date().toISOString(), note: o.payment?.method === "pix" ? "Pix confirmado" : "Cartão aprovado", by },
+  );
+  updateTag(CATALOG_TAG);
+  return paid;
+}
+
+async function charge(order: Order, method: PaymentMethod, card?: z.infer<typeof cardSchema>) {
+  const shop = await getShopRepo();
+  const payment = await paymentProvider().create(order, method, card);
+  let o = await shop.updateOrder(order.id, { payment }, payment.status === "recusado" ? { status: "nota", at: new Date().toISOString(), note: payment.message ?? "Pagamento recusado", by: "Pagamento" } : undefined);
+  if (payment.status === "aprovado") o = (await markPaid(o.id, "Pagamento")) ?? o;
+  return o;
+}
+
+export async function placeOrder(input: unknown) {
+  return run(async () => {
+    const shop = await getShopRepo();
+    const me = await shop.me();
+    if (!me) throw new Error("Entre na sua conta para finalizar.");
+    if (!me.name) throw new Error("Informe seu nome para finalizar.");
+    const data = placeSchema.parse(input);
+    if (data.method === "cartao" && !data.card) throw new Error("Preencha os dados do cartão.");
+
+    const q = await quote(data.items);
+    const bad = q.lines.find((l) => !l.available);
+    if (bad) throw new Error(`${bad.title}${bad.label ? ` (${bad.label})` : ""}: ${bad.reason.toLowerCase()}. Tire da sacola para continuar.`);
+    const options = data.shippingId === "retirada" && !data.address ? quoteShipping("70000-000", q.subtotal, q.units) : quoteShipping(data.address?.cep ?? "", q.subtotal, q.units);
+    const ship = options.find((s) => s.id === data.shippingId);
+    if (!ship) throw new Error("Escolha uma forma de entrega válida para o CEP.");
+    if (ship.id !== "retirada" && !data.address) throw new Error("Informe o endereço de entrega.");
+
+    const items: OrderItem[] = q.lines.map((l) => ({
+      variantId: l.variantId, productId: l.productId, slug: l.slug, title: l.title, label: l.label, sku: l.sku, image: l.image, category: l.category, priceCents: l.priceCents!, qty: l.qty,
+    }));
+    const now = new Date().toISOString();
+    const units = items.reduce((s, i) => s + i.qty, 0);
+    const order = await shop.createOrder({
+      customerId: me.id, email: me.email, name: me.name, phone: me.phone, items, subtotalCents: q.subtotal, shippingCents: ship.priceCents,
+      totalCents: q.subtotal + ship.priceCents, shipping: { ...ship, address: ship.id === "retirada" ? null : (data.address as Address) }, payment: null,
+      status: "aguardando_pagamento", tracking: "", notes: data.notes, timeline: [{ status: "criado", at: now, note: `${units} ${units === 1 ? "peça" : "peças"} · ${ship.label}`, by: me.name }],
+    });
+    // guarda o endereço novo na conta, para a próxima compra
+    if (data.address && !data.address.id) await shop.saveAddress(data.address).catch(() => null);
+    const o = await charge(order, data.method, data.card);
+    return { id: o.id, number: o.number, status: o.status, payment: o.payment };
+  });
+}
+
+/** Tentar de novo (cartão recusado, Pix expirado ou troca de forma de pagamento). */
+export async function retryPayment(orderId: string, method: PaymentMethod, card?: unknown) {
+  return run(async () => {
+    const shop = await getShopRepo();
+    const o = await shop.myOrder(z.string().min(1).parse(orderId));
+    if (!o) throw new Error("Pedido não encontrado.");
+    if (o.status !== "aguardando_pagamento") throw new Error("Este pedido já foi pago ou cancelado.");
+    const r = await charge(o, z.enum(["pix", "cartao"]).parse(method), card ? cardSchema.parse(card) : undefined);
+    return { id: r.id, number: r.number, status: r.status, payment: r.payment };
+  });
+}
+
+/** Só no modo demonstração: faz de conta que o banco confirmou o Pix. */
+export async function simulatePixPaid(orderId: string) {
+  return run(async () => {
+    if (!paymentProvider().simulated) throw new Error("Disponível só no modo demonstração.");
+    const shop = await getShopRepo();
+    const o = await shop.myOrder(z.string().min(1).parse(orderId));
+    if (!o) throw new Error("Pedido não encontrado.");
+    const r = await markPaid(o.id, "Pagamento");
+    return { id: o.id, status: r?.status ?? o.status };
+  });
+}
+
+export async function myOrders() {
+  return run(async () => (await getShopRepo()).myOrders());
+}
+
+export async function myOrder(orderId: string) {
+  return run(async () => (await getShopRepo()).myOrder(z.string().min(1).parse(orderId)));
+}

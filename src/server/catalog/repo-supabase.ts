@@ -2,7 +2,7 @@ import "server-only";
 import { slugify } from "@/lib/catalog/import";
 import { summarize, variantLabel, type CategorySlug, type Product, type StockMove, type Variant } from "@/lib/catalog/types";
 import type { Json, Tables } from "@/lib/supabase/database.types";
-import { createSupabaseServer } from "@/lib/supabase/server";
+import { createSupabaseServer, createSupabaseService } from "@/lib/supabase/server";
 import { newId, shortId, type CatalogRepo } from "./repo";
 import { all, chunks, groupBy, must } from "./rows";
 
@@ -163,6 +163,22 @@ export async function supabaseCatalog(): Promise<CatalogRepo> {
           delta: m.delta, reason: m.reason, note: m.note, at: m.created_at, by: (m.user_id && nameBy.get(m.user_id)) || "Equipe",
         }];
       });
+    },
+
+    async sell(items, sign, note) {
+      const svc = createSupabaseService();
+      const ids = items.map((i) => i.variantId);
+      const cur = ids.length ? must(await svc.from("product_variants").select("id, stock_policy, stock_on_hand").in("id", ids)) : [];
+      const out: Array<{ variantId: string; moved: number }> = [];
+      for (const it of items) {
+        const v = cur.find((x) => x.id === it.variantId);
+        if (!v) continue;
+        const moved = sign === 1 ? (it.moved ?? it.qty) : v.stock_policy === "estoque" ? it.qty : Math.min(it.qty, Math.max(0, v.stock_on_hand));
+        if (!moved) continue;
+        friendly((await svc.from("stock_movements").insert({ variant_id: it.variantId, delta: sign * moved, reason: sign === 1 ? "devolucao" : "venda", note, user_id: null })).error, "O estoque");
+        out.push({ variantId: it.variantId, moved });
+      }
+      return out;
     },
 
     async move(variantId, delta, reason, note) {
