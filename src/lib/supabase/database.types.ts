@@ -56,6 +56,20 @@ export type Database = {
         { id: string; product_id: string; variant_id: string | null; kind: "imagem" | "video"; url: string; alt: string; visible: boolean; position: number },
         "product_id" | "url"
       >;
+      customers: Table<{ id: string; email: string; name: string; phone: string; cpf: string; provider: "email" | "google"; created_at: string }, "id" | "email">;
+      customer_addresses: Table<
+        { id: string; customer_id: string; recipient: string; cep: string; street: string; number: string; complement: string; district: string; city: string; uf: string; created_at: string },
+        "customer_id" | "recipient" | "cep" | "street" | "number" | "district" | "city" | "uf"
+      >;
+      favorites: Table<{ customer_id: string; product_id: string; created_at: string }, "customer_id" | "product_id">;
+      orders: Table<
+        {
+          id: string; number: number; customer_id: string | null; email: string; name: string; phone: string; items: Json; subtotal_cents: number; shipping_cents: number;
+          total_cents: number; shipping: Json; payment: Json | null; status: "aguardando_pagamento" | "pago" | "em_separacao" | "enviado" | "entregue" | "cancelado";
+          tracking: string; notes: string; timeline: Json; created_at: string; updated_at: string;
+        },
+        "email" | "name" | "items" | "subtotal_cents" | "total_cents"
+      >;
       stock_movements: Table<
         { id: number; variant_id: string; delta: number; reason: "inicial" | "compra" | "venda" | "ajuste" | "devolucao"; note: string; user_id: string | null; created_at: string },
         "variant_id" | "delta" | "reason"

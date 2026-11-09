@@ -4,13 +4,25 @@ import { parseVideo } from "@/lib/catalog/media";
 import { swatch } from "@/lib/catalog/swatch";
 import { availability, brl, canSell, optionName, variantLabel, type ProductMedia, type PublicProduct, type PublicVariant } from "@/lib/catalog/types";
 import { waNumberLink } from "@/lib/links";
+import { installmentsFor } from "@/lib/shop/types";
+import { FavButton } from "../shop/FavButton";
+import { Qty } from "../shop/Qty";
+import { ShippingCalc } from "../shop/ShippingCalc";
+import { useShop } from "../shop/ShopProvider";
 import { ProductArt } from "./ProductArt";
 
-/** Topo da página do produto: fotos e vídeos, escolha da variante, preço, prazo e compra pelo WhatsApp. */
+/** Topo da página do produto: fotos e vídeos, escolha da variante, preço, prazo, sacola e favoritos. */
 export function ProductView({ product: p, label, name, whatsapp, url }: { product: PublicProduct; label: string; name: string; whatsapp: string; url: string }) {
+  const shop = useShop();
   const first = p.variants.find(canSell) ?? p.variants[0];
-  const [sel, setSel] = useState<Record<string, string>>(() => ({ ...first.options }));
+  const [sel, setSel] = useState<Record<string, string>>(() => ({
+    ...first.options,
+  }));
   const [shot, setShot] = useState(0);
+  const [qty, setQty] = useState(1);
+  const [added, setAdded] = useState(0);
+  const buy = useRef<HTMLDivElement>(null);
+  const [barOn, setBarOn] = useState(false);
 
   const values = useMemo(() => Object.fromEntries(p.options.map((o) => [o, [...new Set(p.variants.map((v) => v.options[o]).filter(Boolean))]])), [p]);
   const matches = (v: PublicVariant, s: Record<string, string>) => p.options.every((o) => v.options[o] === s[o]);
@@ -47,6 +59,48 @@ export function ProductView({ product: p, label, name, whatsapp, url }: { produc
     `SKU ${variant.sku}${price ? ` · ${brl(price)}` : ""}`,
     url,
   ].join("\n");
+  const canBuy = sellable && price != null && price > 0;
+
+  const addToBag = () => {
+    if (!canBuy) return;
+    const img = (p.media.find((m) => m.variantId === variant.id && m.kind === "imagem") ?? p.media.find((m) => m.kind === "imagem"))?.url ?? null;
+    shop.add({
+      variantId: variant.id,
+      productId: p.id,
+      slug: p.slug,
+      title: p.title,
+      label: desc,
+      sku: variant.sku,
+      image: img,
+      category: p.category,
+      priceCents: price,
+      qty,
+    });
+    setAdded((n) => n + 1);
+    setQty(1);
+  };
+
+  // celular: quando o botão principal já passou para cima da tela, aparece uma barra fixa com preço e "Adicionar"
+  useEffect(() => {
+    let raf = 0;
+    const check = () => {
+      raf = 0;
+      const r = buy.current?.getBoundingClientRect();
+      setBarOn(!!r && r.bottom < 0);
+    };
+    const onScroll = () => {
+      if (!raf) raf = requestAnimationFrame(check);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      cancelAnimationFrame(raf);
+    };
+  }, []);
+  useEffect(() => {
+    document.documentElement.classList.toggle("pdp-bar-on", barOn);
+    return () => document.documentElement.classList.remove("pdp-bar-on");
+  }, [barOn]);
 
   return (
     <div className="pdp-grid">
@@ -95,7 +149,14 @@ export function ProductView({ product: p, label, name, whatsapp, url }: { produc
               const v = m.kind === "video" ? parseVideo(m.url) : null;
               const src = m.kind === "imagem" ? m.url : v?.thumb;
               return (
-                <button key={m.url} role="tab" aria-selected={i === shot} className={`${i === shot ? "on" : ""}${v ? " vid" : ""}`} onClick={() => setShot(i)} aria-label={v ? `Vídeo ${i + 1}` : `Foto ${i + 1}`}>
+                <button
+                  key={m.url}
+                  role="tab"
+                  aria-selected={i === shot}
+                  className={`${i === shot ? "on" : ""}${v ? " vid" : ""}`}
+                  onClick={() => setShot(i)}
+                  aria-label={v ? `Vídeo ${i + 1}` : `Foto ${i + 1}`}
+                >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   {src ? <img src={src} alt="" loading="lazy" className={v?.vertical ? "tall" : undefined} /> : <span />}
                   {v && <i className="pl" aria-hidden="true" />}
@@ -119,6 +180,11 @@ export function ProductView({ product: p, label, name, whatsapp, url }: { produc
             <b className="ask">Sob consulta</b>
           )}
         </div>
+        {canBuy && installmentsFor(price) > 1 && (
+          <p className="pdp-inst">
+            ou {installmentsFor(price)}x de {brl(Math.ceil(price / installmentsFor(price)))} sem juros
+          </p>
+        )}
         <p className={`avail${variant.inStock ? " is-in" : sellable ? "" : " is-out"}`}>
           <i aria-hidden="true" />
           {availability(variant)}
@@ -153,17 +219,59 @@ export function ProductView({ product: p, label, name, whatsapp, url }: { produc
           </fieldset>
         ))}
 
-        <div className="pdp-acts">
-          <a className={`btn${sellable ? "" : " btn-line"}`} href={waNumberLink(whatsapp, msg)} target="_blank" rel="noopener">
-            {sellable ? "Comprar pelo WhatsApp" : "Avise-me quando chegar"} <span className="ar">→</span>
-          </a>
-          <a className="ulink" href="/#contato">
-            Incluir num projeto <span className="ar">→</span>
-          </a>
+        <div className="pdp-buy" ref={buy}>
+          {canBuy ? (
+            <>
+              <Qty value={qty} onChange={setQty} />
+              <button type="button" key={added} className={`sbtn amber grow${added ? " lit" : ""}`} onClick={addToBag}>
+                Adicionar à sacola
+              </button>
+            </>
+          ) : (
+            <a className="sbtn amber grow" href={waNumberLink(whatsapp, msg)} target="_blank" rel="noopener">
+              {sellable ? "Pedir orçamento pelo WhatsApp" : "Avise-me quando chegar"}
+            </a>
+          )}
+          <FavButton id={p.id} title={p.title} className="pdp-fav" />
         </div>
-        <p className="pdp-how">Você conversa com uma consultora, confirma prazo e frete e finaliza o pedido, sem cadastro.</p>
+        {canBuy && (
+          <p className="pdp-alt">
+            Prefere conversar antes?{" "}
+            <a className="tlink" href={waNumberLink(whatsapp, msg)} target="_blank" rel="noopener">
+              Comprar com uma consultora pelo WhatsApp
+            </a>
+          </p>
+        )}
+
+        {canBuy && <ShippingCalc variantId={variant.id} qty={qty} />}
+
+        <ul className="pdp-perks">
+          <li>Entrega grátis em Brasília e acima de R$ 3.000</li>
+          <li>Pague com Pix ou cartão de crédito</li>
+          <li>
+            Quer a casa toda?{" "}
+            <a className="tlink" href="/#contato">
+              Inclua num projeto de iluminação
+            </a>
+          </li>
+        </ul>
         <p className="sku">SKU {variant.sku}</p>
       </div>
+
+      {canBuy && (
+        <div className={`pdp-bar${barOn ? " on" : ""}`} aria-hidden={!barOn} inert={!barOn}>
+          <div>
+            <b>{name}</b>
+            <span>
+              {brl(price)}
+              {desc ? ` · ${desc}` : ""}
+            </span>
+          </div>
+          <button type="button" className="sbtn amber sm" onClick={addToBag}>
+            Adicionar
+          </button>
+        </div>
+      )}
     </div>
   );
 }

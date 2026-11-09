@@ -6,7 +6,7 @@
  * Uso: npm run catalog:import -- data/produtos.csv [data/videos.csv ...]
  * A pasta data/ fica fora do git (o repositório é público e os dados são do cliente).
  */
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { fetchVideoTitles, importCsv, matchMedia, readMediaRows } from "../src/lib/catalog/import";
 import { isVideoUrl, mediaKey } from "../src/lib/catalog/media";
 
@@ -34,7 +34,9 @@ async function main() {
 
   mkdirSync("data", { recursive: true });
   writeFileSync("data/catalogo.json", JSON.stringify(products));
-  console.log("Gravado em data/catalogo.json");
+  // o estado do modo demonstração (edições, vendas) partia do catálogo antigo: recomeça da planilha nova
+  rmSync("data/demo-catalogo-estado.json", { force: true });
+  console.log("Gravado em data/catalogo.json (estado de demonstração do catálogo zerado)");
 }
 
 main().catch((e) => {

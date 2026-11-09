@@ -2,11 +2,25 @@ import "server-only";
 import { slugify } from "@/lib/catalog/import";
 import { summarize, variantLabel, type Product, type StockMove } from "@/lib/catalog/types";
 import { newId, shortId, type CatalogRepo } from "./repo";
-import { catalogStore } from "./store";
+import { catalogStore, persistCatalog } from "./store";
 
 const clone = <T,>(x: T): T => structuredClone(x);
 
 export function demoCatalog(): CatalogRepo {
+  const repo = build();
+  // toda mudança é gravada em data/ para sobreviver a reinícios do servidor local
+  for (const k of ["create", "save", "remove", "setStatus", "setPolicy", "move", "sell", "importProducts", "appendMedia"] as const) {
+    const fn = repo[k] as (...a: unknown[]) => Promise<unknown>;
+    (repo as unknown as Record<string, unknown>)[k] = async (...a: unknown[]) => {
+      const r = await fn.apply(repo, a);
+      persistCatalog();
+      return r;
+    };
+  }
+  return repo;
+}
+
+function build(): CatalogRepo {
   const S = catalogStore();
   const variantIndex = () => {
     const m = new Map<string, { p: Product; v: Product["variants"][number] }>();
@@ -73,6 +87,20 @@ export function demoCatalog(): CatalogRepo {
           const hit = idx.get(m.variantId);
           return hit ? [{ ...m, productId: hit.p.id, product: hit.p.title, sku: hit.v.sku, label: variantLabel(hit.v, hit.p.options) }] : [];
         });
+    },
+    async sell(items, sign, note) {
+      const idx = variantIndex();
+      const out: Array<{ variantId: string; moved: number }> = [];
+      for (const it of items) {
+        const hit = idx.get(it.variantId);
+        if (!hit) continue;
+        const moved = sign === 1 ? (it.moved ?? it.qty) : hit.v.stockPolicy === "estoque" ? it.qty : Math.min(it.qty, Math.max(0, hit.v.stock));
+        if (!moved) continue;
+        hit.v.stock += sign * moved;
+        S.moves.push({ id: newId(), variantId: it.variantId, delta: sign * moved, reason: sign === 1 ? "devolucao" : "venda", note, at: new Date().toISOString(), by: "Loja" });
+        out.push({ variantId: it.variantId, moved });
+      }
+      return out;
     },
     async move(variantId, delta, reason, note, by) {
       const hit = variantIndex().get(variantId);

@@ -21,6 +21,11 @@ export interface CatalogRepo {
   stock(): Promise<StockRow[]>;
   moves(variantId?: string): Promise<StockMove[]>;
   move(variantId: string, delta: number, reason: StockReason, note: string, by: string): Promise<void>;
+  /**
+   * Baixa (sign -1) ou devolve (sign +1) o estoque de um pedido, pelo sistema (sem login da equipe).
+   * Variante "só pronta entrega" baixa a quantidade toda; "sob encomenda" só consome o que houver em estoque.
+   */
+  sell(items: Array<{ variantId: string; qty: number; moved?: number }>, sign: -1 | 1, note: string): Promise<Array<{ variantId: string; moved: number }>>;
 
   importProducts(products: Product[]): Promise<Omit<ImportResult, "rows" | "products" | "skipped">>;
   /** Produtos com SKUs, nomes antigos e links já cadastrados, para ligar fotos e vídeos de uma planilha. */
