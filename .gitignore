@@ -45,3 +45,6 @@ next-env.d.ts
 
 # testes
 /test-results
+
+# dados do cliente (catálogo importado da planilha) — nunca entram no repositório público
+/data/

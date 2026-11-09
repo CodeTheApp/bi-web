@@ -286,8 +286,8 @@ export default async function Home() {
               <h2 className="h-l" style={{ marginTop: 24, color: "var(--marrom-intenso)" }} data-split>{S.loja.title}</h2>
               <p data-up>{rich(S.loja.text)}</p>
               <div className="acts" data-up>
-                <a className="btn" href={settings.shopUrl} target="_blank" rel="noopener">
-                  {S.loja.cta || "Visite a loja"} <span className="ar">↗</span>
+                <a className="btn" href="/loja">
+                  {S.loja.cta || "Visite a loja"} <span className="ar">→</span>
                 </a>
                 <a className="ulink" style={{ color: "var(--ambar-queimado)" }} href={wa} target="_blank" rel="noopener">
                   Falar com consultora <span className="ar">→</span>
@@ -296,7 +296,7 @@ export default async function Home() {
             </div>
             <div className="prods">
               {PRODS.map(([src, alt]) => (
-                <a key={src} href={settings.shopUrl} target="_blank" rel="noopener" data-clip>
+                <a key={src} href="/loja" data-clip>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={src} alt={alt} loading="lazy" />
                 </a>
