@@ -38,11 +38,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 /* ---------------- status (ReUI Badge) ---------------- */
 export const STATUS_LABEL: Record<string, string> = {
   novo: "Novo", andamento: "Em andamento", respondido: "Respondido", arquivado: "Arquivado", publicado: "Publicado", rascunho: "Rascunho", oculto: "Oculto",
-  Ativo: "Ativo", "Convite pendente": "Convite pendente",
+  Ativo: "Ativo", "Convite pendente": "Convite pendente", fora: "Sem estoque",
 };
 const STATUS_VARIANT = {
   novo: "warning-light", "Convite pendente": "warning-light", andamento: "info-light", respondido: "success-light", publicado: "success-light", Ativo: "success-light",
-  arquivado: "secondary", oculto: "secondary", rascunho: "primary-light",
+  arquivado: "secondary", oculto: "secondary", rascunho: "primary-light", fora: "warning-light",
 } as const;
 
 export function Chip({ s, className }: { s: string; className?: string }) {

@@ -77,10 +77,6 @@ function Form({ initial, users, canEdit }: { initial: S; users: AdminUser[]; can
             E-mail de contato<small>Aparece no site. Os avisos de contato vão para EMAIL_TEAM_TO.</small>
             <Input type="email" {...f("email")} />
           </label>
-          <label className="f">
-            Link da loja
-            <Input type="url" {...f("shopUrl")} />
-          </label>
         </div>
         <div className="card pad stack">
           <b>SEO padrão</b>
@@ -125,7 +121,7 @@ function Users({ users }: { users: AdminUser[] }) {
       {
         accessorKey: "name",
         header: "Nome",
-        size: 220,
+        size: 180,
         cell: ({ row }) => (
           <div className="row">
             <span className="av">{initials(row.original.name)}</span>
@@ -133,24 +129,24 @@ function Users({ users }: { users: AdminUser[] }) {
           </div>
         ),
       },
-      { accessorKey: "email", header: "E-mail", size: 260, cell: (i) => <span className="muted">{i.getValue() as string}</span>, meta: { headerClassName: "max-md:hidden", cellClassName: "max-md:hidden" } },
+      { accessorKey: "email", header: "E-mail", size: 200, cell: (i) => <span className="muted">{i.getValue() as string}</span>, meta: { headerClassName: "max-md:hidden", cellClassName: "max-md:hidden" } },
       {
         accessorKey: "role",
         header: "Papel",
-        size: 110,
+        size: 90,
         cell: (i) => (
           <Badge variant="secondary" radius="full" size="lg">
             {i.getValue() === "admin" ? "Admin" : "Editor"}
           </Badge>
         ),
       },
-      { accessorKey: "status", header: "Status", size: 150, cell: (i) => <Chip s={i.getValue() as string} /> },
+      { accessorKey: "status", header: "Status", size: 130, cell: (i) => <Chip s={i.getValue() as string} /> },
     ],
     [],
   );
   const table = useTable({ features: dataGridFeatures, columns, data: users, getRowId: (u: AdminUser) => u.id, state: { sorting }, onSortingChange: setSorting });
   return (
-    <DataGrid table={table} recordCount={users.length} tableLayout={{ headerBackground: false, rowBorder: true }}>
+    <DataGrid table={table} recordCount={users.length} tableLayout={{ headerBackground: false, rowBorder: true, width: "auto" }}>
       <DataGridContainer border={false}>
         <DataGridScrollArea>
           <DataGridTable />

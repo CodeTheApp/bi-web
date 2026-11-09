@@ -22,6 +22,7 @@ export function Footer({ settings, projects }: { settings: Settings; projects: P
             <li><a href="/#quem-somos">Quem somos</a></li>
             <li><a href="/#servicos">Serviços</a></li>
             <li><a href="/#portfolio">Portfólio</a></li>
+            <li><a href="/loja">Loja</a></li>
             <li><a href="/#contato">Contato</a></li>
           </ul>
         </div>
@@ -38,7 +39,6 @@ export function Footer({ settings, projects }: { settings: Settings; projects: P
           <ul>
             <li><a href={waLink(settings)} target="_blank" rel="noopener">{settings.whatsapp}</a></li>
             <li><a href={igLink(settings)} target="_blank" rel="noopener">Instagram</a></li>
-            <li><a href={settings.shopUrl} target="_blank" rel="noopener">Loja online</a></li>
           </ul>
         </div>
       </div>

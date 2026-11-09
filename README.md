@@ -1,6 +1,6 @@
 # Brasília Iluminação — site e painel
 
-Site institucional com movimento discreto (rolagem suave, revelações por esmaecimento, uma cena fixada no Luminotécnico) e um painel para editar textos, projetos, fotos, depoimentos e responder os contatos por e-mail.
+Site institucional com movimento discreto (rolagem suave, revelações por esmaecimento, uma cena fixada no Luminotécnico), uma loja (`/loja`) e um painel para editar textos, projetos, fotos, depoimentos, produtos e estoque e responder os contatos por e-mail.
 
 | Camada | Escolha |
 | --- | --- |
@@ -50,15 +50,17 @@ Outros comandos: `npm run typecheck`, `npm run lint`, `npm test`, `npm run build
 
 ```
 src/
-  app/(site)/            home, /projetos/[slug], 404 — site público
+  app/(site)/            home, /projetos/[slug], /loja, /loja/[slug], 404 — site público
   app/admin/             painel: login, senha, (painel)/… telas, auth/confirm
   app/api/email/         webhook do Resend (inbound + status) e anexos recebidos
   components/site/       Nav, rodapé, hero editorial, cenas de rolagem
   components/admin/      shell do painel, telas (views/), mídia, ordenação
   lib/content/           schema (zod) e conteúdo inicial
+  lib/catalog/           produtos e variantes (zod), importador da planilha antiga, amostras de acabamento
   lib/cobogo.ts          gramática das peças de cobogó (mesma regra no SVG e no 3D)
   server/content.ts      leitura do conteúdo publicado, em cache com tags
   server/admin/          ações do painel + repositório (Supabase ou demonstração)
+  server/catalog/        loja: vitrine em cache (tag catalog), ações e repositório de produtos e estoque
   server/actions/        formulário de contato
   emails/                modelos do React Email
   styles/                site.css e admin.css, portados do protótipo
@@ -135,6 +137,17 @@ Sempre: campo-armadilha (honeypot) e validação no servidor. Opcional: **Cloudf
 4. Defina `NEXT_PUBLIC_SITE_URL=https://www.brasiliailuminacao.com.br`.
 
 **Atenção à versão:** o projeto usa Next.js 16. Antes de apontar o domínio, publique numa branch de teste e confira no Amplify: páginas de projeto, publicação pelo painel (cache por tags), login e o webhook. Se o Amplify ainda não suportar algum recurso do Next 16, a alternativa sem mudar o código é hospedar com o OpenNext (SST) na mesma conta AWS.
+
+## Loja (fase 1: catálogo, estoque e compra pelo WhatsApp)
+
+- **Produto** tem nome, categoria, descrição, ficha técnica, fotos e vídeos; o cliente escolhe por **acabamento**, **tamanho** e/ou **versão**. Cada combinação é uma **variante** com SKU, preço (vazio = “sob consulta”), saldo e forma de venda: **só pronta entrega** (padrão) ou **sob encomenda** (com prazo opcional).
+- **Regra de estoque:** só aparece na loja o que pode ser vendido. Variante “só pronta entrega” sem saldo aparece esgotada; produto sem nenhuma variante vendável **sai da loja sozinho**, mesmo publicado, e volta quando entra estoque (o painel mostra “Sem estoque”).
+- **Estoque** é um livro-razão (`stock_movements`): entradas, saídas, devoluções e inventários ficam registrados com quem fez; o saldo da variante (`stock_on_hand`) é atualizado por gatilho. O site só sabe se há pronta entrega, nunca o número exato (permissão por coluna).
+- **Fotos e vídeos:** no editor do produto dá para enviar fotos, puxar da biblioteca, colar link de vídeo (YouTube, inclusive Shorts, Vimeo ou .mp4), arrastar para ordenar, tornar capa, ligar a uma variante e **publicar ou ocultar** cada item. Na loja, o vídeo só carrega o player (youtube-nocookie) quando a pessoa clica.
+- **Vitrine** em `/loja`: filtros por categoria, acabamento, faixa de preço, pronta entrega e vídeo (com contagens), busca enquanto digita, ordem e paginação numerada; no celular os filtros abrem numa gaveta. `/loja/[slug]`: galeria por variante, preço e prazo da variante escolhida, ficha técnica e dados estruturados para o Google. A compra é concluída com uma consultora: o botão abre o WhatsApp com produto, variante, SKU e preço.
+- **Importar planilhas:** *Loja › Produtos › Importar planilha* (só admin) aceita a planilha de produtos da loja antiga e a de fotos/vídeos (colunas `SKU` e `URL`). Produtos: itens da mesma peça viram um produto com variantes, os nomes são organizados e a quantidade vira saldo inicial; importar de novo só atualiza preços e acrescenta variantes. Mídia: cada link é ligado pelo SKU, pela família do SKU ou pelo nome; o mesmo link em produtos diferentes entra oculto, para conferir. Nada é apagado.
+- **Modo demonstração:** `npm run catalog:import -- data/produtos.csv data/videos.csv` gera `data/catalogo.json`, que o painel e a vitrine usam sem Supabase. A pasta `data/` fica fora do git: o repositório é público e o catálogo é do cliente.
+- Próximas fases (ver o plano): pedidos no painel, pagamento (AbacatePay atrás de uma interface própria), frete e nota fiscal.
 
 ## Decisões e pendências
 

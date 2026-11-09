@@ -9,6 +9,8 @@ const nextConfig: NextConfig = {
   // Modelo de cache "clássico" (unstable_cache + revalidateTag), mais previsível no AWS Amplify.
   // Para migrar para Cache Components no futuro: node_modules/next/dist/docs/01-app/02-guides/migrating-to-cache-components.md
   cacheComponents: false,
+  // a importação da planilha de produtos passa pelo painel (Server Action)
+  experimental: { serverActions: { bodySizeLimit: "4mb" } },
   images: {
     formats: ["image/avif", "image/webp"],
     remotePatterns: mediaHost ? [{ protocol: "https", hostname: mediaHost }] : [],

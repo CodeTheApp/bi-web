@@ -6,7 +6,7 @@ const LINKS = [
   ["/#servicos", "Serviços"],
   ["/#luminotecnico", "Luminotécnico"],
   ["/#portfolio", "Portfólio"],
-  ["/#loja", "Loja"],
+  ["/loja", "Loja"],
 ] as const;
 
 /** Navegação: clara sobre seções claras, escura sobre [data-nav="dark"], some ao descer e volta ao subir. */

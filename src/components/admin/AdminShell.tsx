@@ -18,6 +18,8 @@ const ROUTES: Array<{ href: string; name: string; icon: IconName; sec?: string; 
   { href: "/admin/projetos", name: "Projetos", icon: "folder" },
   { href: "/admin/midia", name: "Mídia", icon: "image" },
   { href: "/admin/depoimentos", name: "Depoimentos e FAQ", icon: "quote" },
+  { href: "/admin/loja", name: "Produtos", icon: "tag", sec: "Loja" },
+  { href: "/admin/loja/estoque", name: "Estoque", icon: "box" },
   { href: "/admin/mensagens", name: "Mensagens", icon: "mail", sec: "Atendimento" },
   { href: "/admin/config", name: "Configurações", icon: "cog", sec: "Conta" },
 ];

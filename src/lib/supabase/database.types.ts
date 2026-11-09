@@ -38,6 +38,28 @@ export type Database = {
         "thread_id" | "direction"
       >;
       audit_log: Table<{ id: number; user_id: string | null; action: string; created_at: string }, "action">;
+      products: Table<
+        {
+          id: string; slug: string; title: string; category: string; status: "rascunho" | "publicado" | "arquivado"; description: string;
+          specs: Json; options: string[]; legacy: Json; position: number; created_at: string; updated_at: string;
+        },
+        "slug" | "title" | "category"
+      >;
+      product_variants: Table<
+        {
+          id: string; product_id: string; sku: string; options: Json; price_cents: number | null; compare_at_cents: number | null;
+          stock_policy: "estoque" | "encomenda"; lead_time_days: number | null; stock_on_hand: number; in_stock: boolean; active: boolean; legacy_name: string; position: number;
+        },
+        "product_id" | "sku"
+      >;
+      product_media: Table<
+        { id: string; product_id: string; variant_id: string | null; kind: "imagem" | "video"; url: string; alt: string; visible: boolean; position: number },
+        "product_id" | "url"
+      >;
+      stock_movements: Table<
+        { id: number; variant_id: string; delta: number; reason: "inicial" | "compra" | "venda" | "ajuste" | "devolucao"; note: string; user_id: string | null; created_at: string },
+        "variant_id" | "delta" | "reason"
+      >;
     };
     Views: { [_ in never]: never };
     Functions: { is_staff: { Args: Record<string, never>; Returns: boolean }; is_admin: { Args: Record<string, never>; Returns: boolean } };
