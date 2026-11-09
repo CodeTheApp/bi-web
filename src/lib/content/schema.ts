@@ -37,7 +37,6 @@ export type Section = z.infer<typeof sectionSchema>;
 export type Item = z.infer<typeof itemSchema>;
 
 export const settingsSchema = z.object({
-  hero: z.enum(["cobogo", "janela"]).default("cobogo"),
   whatsapp: z.string().default("(61) 98358-3129"),
   email: z.string().email().default("contato@brasiliailuminacao.com.br"),
   instagram: z.string().default("@brasilia_iluminacao"),

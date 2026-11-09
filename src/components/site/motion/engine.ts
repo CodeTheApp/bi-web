@@ -72,58 +72,39 @@ export function scrollToEl(el: Element | null, immediate = false) {
   else el.scrollIntoView({ behavior: immediate || motion.reduced ? "auto" : "smooth" });
 }
 
-/** Revelações genéricas por atributo: data-split, data-up, data-stagger, data-clip, data-parallax, data-line, data-count. */
+/**
+ * Revelações por atributo, de propósito discretas: só opacidade e poucos pixels de deslocamento,
+ * sem cortinas, giros ou zoom. (A marca pede calma; o movimento acompanha, não aparece.)
+ * data-split / data-up / data-stagger / data-clip / data-parallax / data-line / data-count
+ */
+const CALM = { duration: 1.1, ease: "power2.out" } as const;
+
 export function reveals(scope: Element) {
   const q = <T extends Element = HTMLElement>(sel: string) => Array.from(scope.querySelectorAll<T & Element>(sel)) as unknown as T[];
+  const fadeUp = (targets: gsap.TweenTarget, trigger: Element, y = 18, extra: gsap.TweenVars = {}) =>
+    gsap.fromTo(targets, { y, autoAlpha: 0 }, { y: 0, autoAlpha: 1, ...CALM, ...extra, scrollTrigger: { trigger, start: "top 88%" } });
 
-  q<HTMLElement>("[data-split]").forEach((el) => {
-    gsap.fromTo(split(el), { yPercent: 110 }, { yPercent: 0, duration: 1.2, ease: "expo.out", stagger: 0.045, scrollTrigger: { trigger: el, start: "top 88%" } });
-  });
-  q<HTMLElement>("[data-up]").forEach((el) => {
-    gsap.fromTo(el, { y: 50, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 1.3, ease: "expo.out", delay: parseFloat(el.dataset.up ?? "") || 0, scrollTrigger: { trigger: el, start: "top 90%" } });
-  });
-  q<HTMLElement>("[data-stagger]").forEach((el) => {
-    gsap.fromTo(el.children, { y: 40, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 1.1, ease: "expo.out", stagger: 0.09, scrollTrigger: { trigger: el, start: "top 86%" } });
-  });
+  q<HTMLElement>("[data-split]").forEach((el) => fadeUp(el, el, 16));
+  q<HTMLElement>("[data-up]").forEach((el) => fadeUp(el, el, 16, { delay: parseFloat(el.dataset.up ?? "") || 0 }));
+  q<HTMLElement>("[data-stagger]").forEach((el) => fadeUp(el.children, el, 14, { stagger: 0.06 }));
   q<HTMLElement>("[data-clip]").forEach((el) => {
     const img = el.querySelector("img");
-    const tl = gsap.timeline({ scrollTrigger: { trigger: el, start: "top 85%" } });
-    tl.fromTo(el, { clipPath: "inset(100% 0% 0% 0%)" }, { clipPath: "inset(0% 0% 0% 0%)", duration: 1.5, ease: "expo.inOut" });
-    if (img) tl.fromTo(img, { scale: 1.35 }, { scale: 1, duration: 1.9, ease: "expo.out" }, 0.15);
+    const tl = gsap.timeline({ scrollTrigger: { trigger: el, start: "top 88%" } });
+    tl.fromTo(el, { autoAlpha: 0 }, { autoAlpha: 1, duration: 1.4, ease: "power1.out" });
+    if (img) tl.fromTo(img, { scale: 1.04 }, { scale: 1, duration: 2.2, ease: "power2.out" }, 0);
   });
   q<HTMLElement>("[data-parallax]").forEach((el) => {
-    const amt = parseFloat(el.dataset.parallax ?? "") || 12;
+    const amt = (parseFloat(el.dataset.parallax ?? "") || 8) * 0.35;
     gsap.fromTo(el, { yPercent: -amt }, { yPercent: amt, ease: "none", scrollTrigger: { trigger: el.parentElement, start: "top bottom", end: "bottom top", scrub: true } });
   });
   q<HTMLElement>("[data-line]").forEach((el) => {
-    gsap.fromTo(el, { scaleX: 0 }, { scaleX: 1, transformOrigin: "left", duration: 1.6, ease: "expo.inOut", scrollTrigger: { trigger: el, start: "top 92%" } });
+    gsap.fromTo(el, { scaleX: 0 }, { scaleX: 1, transformOrigin: "left", duration: 1.4, ease: "power2.inOut", scrollTrigger: { trigger: el, start: "top 92%" } });
   });
   q<HTMLElement>("[data-count]").forEach((el) => {
     const end = parseFloat(el.dataset.count ?? "0");
     const o = { v: 0 };
-    gsap.to(o, { v: end, duration: 2.2, ease: "power3.out", scrollTrigger: { trigger: el, start: "top 90%" }, onUpdate: () => void (el.textContent = String(Math.round(o.v))) });
+    gsap.to(o, { v: end, duration: 1.6, ease: "power2.out", scrollTrigger: { trigger: el, start: "top 90%" }, onUpdate: () => void (el.textContent = String(Math.round(o.v))) });
   });
-}
-
-/** Botões que seguem o cursor (data-magnetic=".3"). Retorna a limpeza. */
-export function magnetic(scope: Element) {
-  if (!window.matchMedia("(pointer:fine)").matches || motion.reduced) return () => {};
-  const offs: Array<() => void> = [];
-  scope.querySelectorAll<HTMLElement>("[data-magnetic]").forEach((el) => {
-    const s = parseFloat(el.dataset.magnetic ?? "") || 0.35;
-    const move = (e: MouseEvent) => {
-      const r = el.getBoundingClientRect();
-      gsap.to(el, { x: (e.clientX - r.left - r.width / 2) * s, y: (e.clientY - r.top - r.height / 2) * s, duration: 0.6, ease: "power3.out" });
-    };
-    const leave = () => gsap.to(el, { x: 0, y: 0, duration: 0.9, ease: "elastic.out(1,.4)" });
-    el.addEventListener("mousemove", move);
-    el.addEventListener("mouseleave", leave);
-    offs.push(() => {
-      el.removeEventListener("mousemove", move);
-      el.removeEventListener("mouseleave", leave);
-    });
-  });
-  return () => offs.forEach((f) => f());
 }
 
 export { gsap, ScrollTrigger };

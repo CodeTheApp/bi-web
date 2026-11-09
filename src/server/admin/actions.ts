@@ -66,8 +66,7 @@ export async function getDashboard() {
 export async function getSections() {
   return run(async () => {
     const { repo } = await ctx();
-    const [sections, settings] = await Promise.all([repo.sections(), repo.settings()]);
-    return { sections, hero: settings.hero };
+    return { sections: await repo.sections() };
   });
 }
 export async function getProjects() {
@@ -127,16 +126,6 @@ export async function setSectionVisible(key: SectionKey, visible: boolean) {
     const { repo } = await ctx();
     await repo.setSectionVisible(key, visible);
     await repo.log(`Seção ${SECTION_NAMES[key]} ${visible ? "exibida" : "ocultada"}`);
-    publishSite(TAGS.content);
-  });
-}
-
-export async function setHero(hero: "cobogo" | "janela") {
-  return run(async () => {
-    const { repo } = await ctx({ admin: true });
-    const s = await repo.settings();
-    await repo.saveSettings({ ...s, hero });
-    await repo.log(`Hero do site trocado para ${hero === "cobogo" ? "Cobogó" : "Janela de luz"}`);
     publishSite(TAGS.content);
   });
 }

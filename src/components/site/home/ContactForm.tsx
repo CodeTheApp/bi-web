@@ -57,7 +57,7 @@ export function ContactForm({ cta }: { cta: string }) {
         </div>
       )}
       <div className="full sendrow">
-        <button className="btn" type="submit" data-magnetic=".35" disabled={pending}>
+        <button className="btn" type="submit" disabled={pending}>
           {pending ? "Enviando…" : cta || "Enviar"} <span className="ar">→</span>
         </button>
         <span className="ok" role="status">

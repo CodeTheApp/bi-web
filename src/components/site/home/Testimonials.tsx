@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef } from "react";
 import type { Testimonial } from "@/lib/content/schema";
-import { gsap, onReady, prefersReduced, split } from "../motion/engine";
+import { gsap, onReady, prefersReduced } from "../motion/engine";
 
 /** Depoimentos: troca palavra a palavra, barras de progresso que avançam sozinhas. */
 export function Testimonials({ label, items }: { label: string; items: Testimonial[] }) {
@@ -28,15 +28,12 @@ export function Testimonials({ label, items }: { label: string; items: Testimoni
       }
       ctx.add(() => {
         bars.forEach((b, i) => gsap.set(b.querySelector("i"), { scaleX: i < cur ? 1 : 0 }));
-        if (!first && prev !== next) {
-          gsap.to(split(prev.querySelector("blockquote")), { yPercent: -110, duration: 0.6, ease: "expo.in", stagger: 0.01, onComplete: () => prev.classList.remove("on") });
-          gsap.to(prev.querySelector("figcaption"), { autoAlpha: 0, duration: 0.4 });
-        }
+        // troca por esmaecimento: o depoimento sai e o próximo aparece, sem palavras subindo
+        if (!first && prev !== next) gsap.to(prev, { autoAlpha: 0, duration: 0.8, ease: "power1.out", onComplete: () => prev.classList.remove("on") });
         next.classList.add("on");
-        gsap.fromTo(split(next.querySelector("blockquote")), { yPercent: 110 }, { yPercent: 0, duration: 1.1, ease: "expo.out", stagger: 0.018, delay: first ? 0 : 0.55 });
-        gsap.fromTo(next.querySelector("figcaption"), { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: 0.8, delay: first ? 0.3 : 0.9 });
+        gsap.fromTo(next, { autoAlpha: 0, y: 8 }, { autoAlpha: 1, y: 0, duration: 1.2, ease: "power2.out", delay: first ? 0 : 0.6 });
         barTween?.kill();
-        barTween = gsap.fromTo(bars[cur].querySelector("i"), { scaleX: 0 }, { scaleX: 1, duration: 7, ease: "none", delay: first ? 0 : 0.6, onComplete: () => show(cur + 1) });
+        barTween = gsap.fromTo(bars[cur].querySelector("i"), { scaleX: 0 }, { scaleX: 1, duration: 9, ease: "none", delay: first ? 0 : 0.6, onComplete: () => show(cur + 1) });
       });
     };
 

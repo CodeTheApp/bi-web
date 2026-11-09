@@ -1,11 +1,11 @@
 # Brasília Iluminação — site e painel
 
-Site institucional com muito movimento (rolagem suave, cenas fixadas, hero 3D de cobogó) e um painel para editar textos, projetos, fotos, depoimentos e responder os contatos por e-mail.
+Site institucional com movimento discreto (rolagem suave, revelações por esmaecimento, uma cena fixada no Luminotécnico) e um painel para editar textos, projetos, fotos, depoimentos e responder os contatos por e-mail.
 
 | Camada | Escolha |
 | --- | --- |
 | Front-end | Next.js 16 (App Router, React 19), TypeScript, Tailwind v4 |
-| Movimento | GSAP + ScrollTrigger, Lenis, three.js (hero Cobogó, carregado sob demanda) |
+| Movimento | GSAP + ScrollTrigger e Lenis, em tom contido (sem cursor personalizado, preloader ou 3D) |
 | Painel | TanStack Query + Server Actions; componentes [shadcn/ui](https://ui.shadcn.com) (Radix) e [ReUI](https://reui.io) |
 | Back-end e banco | Supabase (Postgres com RLS, Auth, Realtime) |
 | Arquivos | Amazon S3 + CloudFront (envio direto do navegador com URL assinada) |
@@ -53,7 +53,7 @@ src/
   app/(site)/            home, /projetos/[slug], 404 — site público
   app/admin/             painel: login, senha, (painel)/… telas, auth/confirm
   app/api/email/         webhook do Resend (inbound + status) e anexos recebidos
-  components/site/       Nav, rodapé, hero (Janela de luz / Cobogó 3D), cenas de rolagem
+  components/site/       Nav, rodapé, hero editorial, cenas de rolagem
   components/admin/      shell do painel, telas (views/), mídia, ordenação
   lib/content/           schema (zod) e conteúdo inicial
   lib/cobogo.ts          gramática das peças de cobogó (mesma regra no SVG e no 3D)
@@ -96,7 +96,7 @@ supabase/migrations/     esquema, RLS, tempo real
 7. Variáveis: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` e `SUPABASE_SERVICE_ROLE_KEY` (esta só no servidor: formulário de contato, webhook e convites).
 8. Depois de criar o projeto, gere os tipos reais: `npx supabase gen types typescript --project-id <id> > src/lib/supabase/database.types.ts`.
 
-Quem pode o quê (RLS): visitantes leem só o publicado/visível; **editor** edita conteúdo, projetos, mídia e mensagens; **admin** também altera configurações, hero e usuários.
+Quem pode o quê (RLS): visitantes leem só o publicado/visível; **editor** edita conteúdo, projetos, mídia e mensagens; **admin** também altera configurações e usuários.
 
 ## Amazon S3 + CloudFront (fotos e anexos)
 
@@ -138,7 +138,8 @@ Sempre: campo-armadilha (honeypot) e validação no servidor. Opcional: **Cloudf
 
 ## Decisões e pendências
 
-- Hero do site: Cobogó (padrão) ou Janela de luz, escolhido em *Páginas* pelo admin.
+- Hero: a foto escolhida em *Páginas › Hero* alterna com as capas de dois projetos publicados; na entrada, a luz acende como um dimmer.
+- Movimento: revelações só por opacidade e poucos pixels; se o visitante pede menos movimento no sistema, tudo fica estático.
 - As fotos dos produtos da seção Curadoria e das etapas do Luminotécnico ainda são fixas no código; dá para torná-las editáveis no painel numa próxima etapa.
 - O painel em modo demonstração nunca liga em produção, a não ser com `ADMIN_DEMO=1`.
 - Navegação do site com `<a>` (carga completa entre home e projetos) de propósito: as cenas do GSAP ficam mais previsíveis assim.

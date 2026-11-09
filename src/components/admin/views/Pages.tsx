@@ -5,12 +5,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { SECTION_KEYS, SECTION_NAMES, type Section, type SectionKey } from "@/lib/content/schema";
-import { getSections, saveSection, setHero, setSectionVisible } from "@/server/admin/actions";
+import { getSections, saveSection, setSectionVisible } from "@/server/admin/actions";
 import type { SectionRow } from "@/server/admin/types";
 import { Icon } from "../icons";
 import { MediaPicker } from "../media";
 import { Grip, SortableItem, SortableList } from "../Sortable";
-import { Chip, ErrorBox, PageHead, Seg, Skeleton, Switch, unwrap, useDebounced, useToast } from "../ui";
+import { Chip, ErrorBox, PageHead, Skeleton, Switch, unwrap, useDebounced, useToast } from "../ui";
 
 type Field = "label" | "title" | "title2" | "text" | "cta" | "image";
 const FIELDS: Record<SectionKey, Field[]> = {
@@ -26,7 +26,7 @@ const FIELDS: Record<SectionKey, Field[]> = {
   contato: ["label", "title", "title2", "text", "cta"],
 };
 const LABEL: Partial<Record<SectionKey, Partial<Record<Field, string>>>> = {
-  hero: { title: "Título — linha 1", title2: "Título — linha 2 (âmbar)", image: "Foto do hero" },
+  hero: { title: "Título — linha 1", title2: "Título — linha 2 (dourado)", image: "Foto principal", cta: "Texto do botão (leva ao contato)" },
   quem: { title: "Manifesto — começo", text: "Manifesto — continuação" },
   camila: { title: "Nome", image: "Foto" },
   contato: { title: "Título", title2: "Final do título (âmbar)" },
@@ -52,31 +52,10 @@ const withIds = (s: Section) => s.items.map((it) => ({ ...it, _id: `i${++seq}` }
 export function Pages() {
   const q = useQuery({ queryKey: ["sections"], queryFn: () => unwrap(getSections()) });
   const [cur, setCur] = useState<SectionKey>("hero");
-  const qc = useQueryClient();
-  const toast = useToast();
-  const hero = useMutation({
-    mutationFn: (h: "cobogo" | "janela") => unwrap(setHero(h)),
-    onSuccess: (_d, h) => {
-      toast(`Hero trocado para ${h === "cobogo" ? "Cobogó" : "Janela de luz"}`);
-      qc.invalidateQueries({ queryKey: ["sections"] });
-    },
-    onError: (e) => toast(e.message),
-  });
 
   return (
     <>
-      <PageHead title="Páginas" sub="Edite os textos de cada seção da home. Nada muda no site até você publicar.">
-        <span className="muted" style={{ fontSize: 12.5 }}>
-          Hero ativo
-        </span>
-        {q.data && (
-          <Seg
-            value={hero.isPending && hero.variables ? hero.variables : q.data.hero}
-            options={[["cobogo", "Cobogó"], ["janela", "Janela de luz"]]}
-            onChange={(h) => hero.mutate(h)}
-          />
-        )}
-      </PageHead>
+      <PageHead title="Páginas" sub="Edite os textos de cada seção da home. Nada muda no site até você publicar." />
       {q.error && <ErrorBox error={q.error} retry={() => q.refetch()} />}
       {!q.data ? (
         <div className="pg">
@@ -98,14 +77,14 @@ export function Pages() {
               );
             })}
           </div>
-          <Editor key={cur} row={q.data.sections.find((s) => s.key === cur)!} hero={q.data.hero} />
+          <Editor key={cur} row={q.data.sections.find((s) => s.key === cur)!} />
         </div>
       )}
     </>
   );
 }
 
-function Editor({ row, hero }: { row: SectionRow; hero: "cobogo" | "janela" }) {
+function Editor({ row }: { row: SectionRow }) {
   const key = row.key;
   const qc = useQueryClient();
   const toast = useToast();
@@ -281,7 +260,7 @@ function Editor({ row, hero }: { row: SectionRow; hero: "cobogo" | "janela" }) {
               </h2>
               <p>{s.text}</p>
               <span className="pb">{s.cta}</span>
-              <p style={{ marginTop: 16, fontSize: 12, opacity: 0.6 }}>Hero: {hero === "cobogo" ? "Cobogó (peças 3D)" : "Janela de luz"}</p>
+              <p style={{ marginTop: 16, fontSize: 12, opacity: 0.6 }}>No site, esta foto alterna com as capas de dois projetos.</p>
             </>
           ) : (
             <>

@@ -7,7 +7,7 @@ const s = (p: Partial<Section>): Section => ({ visible: true, label: "", title: 
  * É usado quando o Supabase ainda não está configurado e para gerar supabase/seed.sql.
  */
 export const seedSections: Record<SectionKey, Section> = {
-  hero: s({ label: "Projetos e produtos de iluminação", title: "Sua casa,", title2: "sua luz.", text: "Projeto e curadoria de iluminação, do seu jeito.", cta: "Saiba mais", image: "/img/hero.jpg" }),
+  hero: s({ label: "Projetos e produtos de iluminação", title: "Sua casa,", title2: "sua luz.", text: "Projeto e curadoria de iluminação, do seu jeito.", cta: "Agende uma conversa", image: "/img/hero.jpg" }),
   quem: s({
     label: "Quem somos",
     title: "Na Brasília Iluminação, a luz é sentida [foto:/img/pendentes.jpg|Projeto luminotécnico] antes de ser vista.",
@@ -71,7 +71,6 @@ export const seedSections: Record<SectionKey, Section> = {
 export const seedContent: SiteContent = {
   sections: seedSections,
   settings: {
-    hero: "cobogo",
     whatsapp: "(61) 98358-3129",
     email: "contato@brasiliailuminacao.com.br",
     instagram: "@brasilia_iluminacao",
