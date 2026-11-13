@@ -11,7 +11,8 @@ export async function ctx(opts: { admin?: boolean } = {}) {
   return { repo, me };
 }
 
-export type Result<T> = { ok: true; data: T } | { ok: false; error: string };
+import type { Result } from "@/shared/api/result";
+export type { Result } from "@/shared/api/result";
 
 /** Em produção o Next esconde a mensagem de erros lançados; por isso as ações devolvem o erro como dado. */
 export async function run<T>(fn: () => Promise<T>): Promise<Result<T>> {

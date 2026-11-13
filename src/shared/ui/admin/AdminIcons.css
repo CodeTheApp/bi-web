@@ -1,0 +1,12 @@
+/* Lucide Animated renders an actual SVG: no extra wrapper or transform imitation. */
+.adm svg.ic[data-icon] {
+  display: inline-block;
+  vertical-align: middle;
+  flex-shrink: 0;
+  overflow: visible;
+  stroke-width: 1.7;
+}
+.adm .side nav a[aria-current="page"] > svg.ic,
+.adm .search:focus-within > svg.ic {
+  stroke-width: 2;
+}

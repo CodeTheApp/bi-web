@@ -1,20 +1,26 @@
 "use server";
-import { updateTag } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { ReplyEmail } from "@/emails/ContactEmails";
-import { galleryLayout, SECTION_KEYS, SECTION_NAMES, sectionSchema, settingsSchema, THREAD_STATUS, type SectionKey, type ThreadStatus } from "@/lib/content/schema";
+import { galleryLayout, mergeSettings, normalizeSettings, SECTION_KEYS, SECTION_NAMES, sectionSchema, THREAD_STATUS, type SectionKey, type ThreadStatus } from "@/entities/site-content";
 import { EMAIL_FROM, hasEmail, sendEmail, threadReplyTo } from "@/server/email";
 import { TAGS } from "@/server/content";
-import { deleteObject, hasStorage, presignUpload } from "@/server/storage";
+import { INLINE_UPLOAD_LIMIT, IMAGE_UPLOAD_TYPES, VIDEO_UPLOAD_TYPES, validateUpload, validateInlineMedia } from "@/shared/lib/upload-policy";
+import { deleteObject, hasStorage, presignUpload, validateMediaStorageReference } from "@/server/storage";
 import { getRepo } from "./repo";
+import { canonicalMediaCategory, mediaCategoryNameSchema, mediaMetadataSchema } from "@/entities/media";
 import { ctx, run, type Result } from "./guard";
-import type { AdminProject, ListItem } from "./types";
+import type { AdminProject, ListItem } from "@/entities/admin";
+import { integrationStatus } from "./integration-status";
 
 export type { Result };
 
 // updateTag expira na hora: a próxima visita já vê o que foi publicado (revalidateTag serviria a versão antiga mais uma vez)
-const publishSite = (...tags: string[]) => tags.forEach((t) => updateTag(t));
+const publishSite = (...tags: string[]) => {
+  tags.forEach((t) => updateTag(t));
+  revalidatePath("/", "page");
+};
 
 /* ---------------- sessão ---------------- */
 export async function signIn(_prev: { error?: string }, form: FormData): Promise<{ error?: string }> {
@@ -65,6 +71,9 @@ export async function getMedia() {
     return (await ctx()).repo.media();
   });
 }
+export async function getMediaCategories() {
+  return run(async () => (await ctx()).repo.mediaCategories());
+}
 export async function getList(kind: "testimonials" | "faqs") {
   return run(async () => {
     return (await ctx()).repo.list(kind);
@@ -83,14 +92,34 @@ export async function getThread(id: string) {
     return t ? { ...t, unread: false } : null;
   });
 }
+/** Explicit acknowledgement: private GET reads never mutate inbox state. */
+export async function markThreadRead(id: string) {
+  return run(async () => {
+    const { repo } = await ctx();
+    await repo.markRead(z.string().min(1).max(80).regex(/^[A-Za-z0-9_-]+$/).parse(id));
+  });
+}
 export async function getSettings() {
   return run(async () => {
     const { repo, me } = await ctx();
-    return { settings: await repo.settings(), users: me.role === "admin" ? await repo.users() : [], canEdit: me.role === "admin" };
+    const [settings, users] = await Promise.all([repo.settings(), me.role === "admin" ? repo.users() : Promise.resolve([])]);
+    return { settings: normalizeSettings(settings), users, canEdit: me.role === "admin", me, integrations: integrationStatus(repo.mode === "demo") };
   });
 }
 
 /* ---------------- páginas ---------------- */
+export async function reorderSections(keys: SectionKey[]) {
+  return run(async () => {
+    const { repo } = await ctx();
+    if (keys.length !== SECTION_KEYS.length || new Set(keys).size !== SECTION_KEYS.length || keys.some((key) => !SECTION_KEYS.includes(key))) {
+      throw new Error("A ordem deve incluir cada seção uma única vez.");
+    }
+    await repo.reorderSections(keys);
+    await repo.log("Ordem das seções da home atualizada");
+    publishSite(TAGS.content);
+  });
+}
+
 export async function saveSection(key: SectionKey, draft: unknown, publish: boolean) {
   return run(async () => {
     const { repo } = await ctx();
@@ -166,20 +195,47 @@ export async function deleteProject(id: string) {
 }
 
 /* ---------------- mídia ---------------- */
+export async function createMediaCategory(name: string) {
+  return run(async () => {
+    const { repo } = await ctx();
+    const created = await repo.createMediaCategory(mediaCategoryNameSchema.parse(name));
+    await repo.log(`Categoria de mídia criada: ${created}`);
+    return created;
+  });
+}
+
 export async function createUpload(contentType: string, size: number) {
   return run(async () => {
     await ctx();
-    if (!hasStorage()) return { mode: "inline" as const }; // demonstração: o navegador manda a imagem embutida
+    const policy = validateUpload("midia", contentType, size);
+    if (!hasStorage()) {
+      // Images are resized again for inline mode; the final decoded payload is
+      // checked by registerMedia. Videos cannot use that smaller-image fallback.
+      if (policy.video && size > INLINE_UPLOAD_LIMIT) throw new Error("Sem S3, envie arquivos de até 2,5 MB. Configure o armazenamento para vídeos maiores.");
+      return { mode: "inline" as const };
+    } // demonstração: o navegador manda a imagem embutida
     return { mode: "s3" as const, ...(await presignUpload("midia", contentType, size)) };
   });
 }
 
-export async function registerMedia(m: { url: string; key: string | null; width: number | null; height: number | null; alt: string; name: string }) {
+export async function registerMedia(input: { url: string; key: string | null; width: number | null; height: number | null; alt: string; name: string; kind?: "image" | "video"; mimeType?: string }) {
   return run(async () => {
     const { repo } = await ctx();
-    if (m.url.startsWith("data:") && repo.mode !== "demo") throw new Error("Configure o S3 para enviar fotos.");
-    const item = await repo.addMedia({ url: m.url, key: m.key, width: m.width, height: m.height, alt: m.alt.slice(0, 200) });
-    await repo.log(`Foto enviada: ${m.name}`);
+    const m = z.object({
+      url: z.string().max(3500000).refine((value) => /^(?:https?:\/\/|\/img\/|data:(?:image|video)\/)/.test(value), "Endereço de arquivo inválido."),
+      key: z.string().max(300).nullable(), width: z.number().int().positive().max(30000).nullable(), height: z.number().int().positive().max(30000).nullable(),
+      alt: z.string().max(200), name: z.string().trim().min(1).max(120), kind: z.enum(["image", "video"]).default("image"), mimeType: z.string().optional(),
+    }).parse(input);
+    if (m.mimeType && !(m.kind === "video" ? VIDEO_UPLOAD_TYPES as readonly string[] : IMAGE_UPLOAD_TYPES as readonly string[]).includes(m.mimeType)) throw new Error("O formato não corresponde ao tipo do arquivo.");
+    if (m.url.startsWith("data:")) {
+      if (repo.mode !== "demo") throw new Error("Configure o S3 para enviar fotos.");
+      if (m.key) throw new Error("Arquivos embutidos não têm chave S3.");
+      const inline = validateInlineMedia(m.url, m.kind, m.mimeType);
+      m.mimeType = inline.mimeType;
+    }
+    validateMediaStorageReference(m.url, m.key);
+    const item = await repo.addMedia({ url: m.url, key: m.key, width: m.width, height: m.height, alt: m.alt.slice(0, 200), name: m.name.trim().slice(0, 120), category: "", kind: m.kind, mimeType: m.mimeType });
+    await repo.log(`${m.kind === "video" ? "Vídeo enviado" : "Imagem enviada"}: ${m.name}`);
     return item;
   });
 }
@@ -188,6 +244,38 @@ export async function setMediaAlt(id: string, alt: string) {
   return run(async () => {
     const { repo } = await ctx();
     await repo.setMediaAlt(id, alt.slice(0, 200));
+  });
+}
+
+export async function saveMediaMetadata(id: string, metadata: unknown) {
+  return run(async () => {
+    const { repo } = await ctx();
+    const parsed = mediaMetadataSchema.parse(metadata);
+    parsed.category = canonicalMediaCategory(parsed.category, await repo.mediaCategories());
+    await repo.updateMediaMetadata(id, parsed);
+    return parsed;
+  });
+}
+
+export async function setMediaArchived(id: string, archived: boolean) {
+  return run(async () => {
+    const { repo } = await ctx();
+    z.string().min(1).max(100).parse(id); z.boolean().parse(archived);
+    await repo.setMediaArchived(id, archived);
+    await repo.log(archived ? "Arquivo arquivado na biblioteca" : "Arquivo restaurado na biblioteca");
+  });
+}
+
+export async function setProjectStatus(id: string, status: "publicado" | "rascunho") {
+  return run(async () => {
+    const { repo } = await ctx();
+    z.enum(["publicado", "rascunho"]).parse(status);
+    const project = await repo.project(id);
+    if (!project) throw new Error("Projeto não encontrado.");
+    if (status === "publicado" && !project.cover) throw new Error("Escolha uma capa antes de publicar.");
+    await repo.setProjectStatus(id, status);
+    await repo.log(`Projeto ${project.title} ${status === "publicado" ? "publicado" : "despublicado"}`);
+    publishSite(TAGS.projects, TAGS.content);
   });
 }
 
@@ -206,11 +294,31 @@ export async function deleteMedia(id: string) {
 /* ---------------- depoimentos e FAQ ---------------- */
 const listSchema = z.array(z.object({ id: z.string().uuid(), a: z.string().max(600), b: z.string().max(1200), c: z.string().max(80).optional(), visible: z.boolean() })).max(40);
 
-export async function saveList(kind: "testimonials" | "faqs", items: ListItem[]) {
+/** A confirmed deletion removes one row atomically, never a stale list snapshot. */
+export async function deleteListItem(kind: "testimonials" | "faqs", id: string, confirmedId: string) {
+  return run(async () => {
+    const { repo } = await ctx();
+    z.enum(["testimonials", "faqs"]).parse(kind);
+    z.string().uuid().parse(id);
+    if (confirmedId !== id) throw new Error("Confirme o item que deseja excluir.");
+    await repo.deleteListItem(kind, id);
+    publishSite(TAGS.content);
+    return repo.list(kind);
+  });
+}
+
+export async function saveList(kind: "testimonials" | "faqs", items: ListItem[], creation?: { createIds?: string[] }) {
   return run(async () => {
     const { repo } = await ctx();
     if (kind !== "testimonials" && kind !== "faqs") throw new Error("Lista inválida.");
-    const saved = await repo.saveList(kind, listSchema.parse(items));
+    const next = listSchema.parse(items);
+    const createIds = z.object({ createIds: z.array(z.string().uuid()).max(40).default([]) }).optional().parse(creation)?.createIds ?? [];
+    const ids = new Set(next.map((item) => item.id));
+    if (ids.size !== next.length) throw new Error("A lista contém itens duplicados.");
+    if (new Set(createIds).size !== createIds.length || createIds.some((id) => !ids.has(id))) throw new Error("Os itens novos não correspondem à lista enviada.");
+    // Autosave is non-destructive, even for stale/legacy clients. Deletions are
+    // possible only through deleteListItem and its explicit confirmation.
+    const saved = await repo.saveList(kind, next, createIds);
     publishSite(TAGS.content);
     return saved;
   });
@@ -271,10 +379,12 @@ export async function saveSettings(input: unknown) {
   return run(async () => {
     const { repo } = await ctx({ admin: true });
     const current = await repo.settings();
-    const s = settingsSchema.parse({ ...current, ...(input as object) });
+    const s = mergeSettings(current, input);
     await repo.saveSettings(s);
     await repo.log("Configurações atualizadas");
     publishSite(TAGS.content);
+    revalidatePath("/", "layout");
+    return s;
   });
 }
 

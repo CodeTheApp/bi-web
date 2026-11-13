@@ -1,7 +1,7 @@
 import "server-only";
-import type { MediaLink, MatchTarget } from "@/lib/catalog/import";
-import type { ImportResult, Product, ProductStatus, ProductSummary, StockMove, StockReason, StockRow, Variant } from "@/lib/catalog/types";
-import { hasSupabase } from "@/lib/supabase/env";
+import type { MediaLink, MatchTarget } from "@/entities/product";
+import type { ImportResult, Product, ProductStatus, ProductSummary, StockMove, StockReason, StockRow, Variant } from "@/entities/product";
+import { hasSupabase } from "@/shared/api/supabase/env";
 import { demoAllowed } from "@/server/admin/repo";
 
 /** Catálogo da loja no painel. Duas implementações, como o resto do painel: Supabase e demonstração em memória. */

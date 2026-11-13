@@ -1,7 +1,7 @@
 "use server";
 import { redirect } from "next/navigation";
-import { hasSupabase } from "@/lib/supabase/env";
-import { createSupabaseServer } from "@/lib/supabase/server";
+import { hasSupabase } from "@/shared/api/supabase/env";
+import { createSupabaseServer } from "@/shared/api/supabase/server";
 
 const SITE = () => process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 

@@ -1,8 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
-import type { Json } from "@/lib/supabase/database.types";
-import { hasSupabase } from "@/lib/supabase/env";
-import { createSupabaseService } from "@/lib/supabase/server";
-import { htmlToText, lower, parseFrom, stripQuoted } from "@/lib/mail-parse";
+import type { Json } from "@/shared/api/supabase/database.types";
+import { hasSupabase } from "@/shared/api/supabase/env";
+import { createSupabaseService } from "@/shared/api/supabase/server";
+import { htmlToText, lower, parseFrom, stripQuoted } from "@/shared/lib/mail-parse";
 import { EMAIL_FROM, resend } from "@/server/email";
 
 /**

@@ -1,4 +1,4 @@
-import { ProductEditor } from "@/components/admin/views/Shop";
+import { ProductEditor } from "@/_pages/admin-products/ui/Shop";
 
 export const metadata = { title: "Produto" };
 

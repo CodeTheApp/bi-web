@@ -1,6 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { hasSupabase, SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/supabase/env";
+import { hasSupabase, SUPABASE_ANON_KEY, SUPABASE_URL } from "@/shared/api/supabase/env";
 
 /** Renova a sessão do Supabase e protege /admin. (No Next 16 o antigo middleware se chama proxy.) */
 export async function proxy(request: NextRequest) {

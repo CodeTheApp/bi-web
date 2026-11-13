@@ -1,0 +1,119 @@
+.adm .coupon-code-cell {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+}
+.adm .coupon-code-cell button {
+  background: none;
+  border: 0;
+  font: inherit;
+  font-weight: 500;
+  letter-spacing: 0.035em;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+.adm .coupon-code-cell button:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.adm .coupon-cell-note {
+  display: block;
+  font-size: 10px;
+  color: var(--muted-foreground);
+  margin-top: 3px;
+}
+.adm .coupon-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--muted-foreground);
+}
+.adm .coupon-status:before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.adm .coupon-status.active {
+  color: var(--ok, #288653);
+}
+.adm .coupon-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.adm .coupon-editor-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px 14px;
+}
+.adm .coupon-editor-grid > * {
+  min-width: 0;
+}
+.adm .coupon-editor-grid ~ .ferr {
+  overflow-wrap: anywhere;
+}
+.coupon-dialog-title {
+  overflow-wrap: anywhere;
+}
+.adm .coupon-library {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+.adm .coupon-active-field {
+  justify-content: flex-start;
+  gap: 8px;
+}
+.adm .coupon-delete-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+.adm .coupon-reservation-note {
+  padding: 10px 16px;
+  border-top: 1px solid var(--line);
+  font-size: 10.5px;
+  color: var(--muted-foreground);
+  line-height: 1.6;
+}
+.adm .coupon-library .flt-bar [data-slot="select-trigger"] {
+  width: 150px;
+}
+@media (max-width: 560px) {
+  .adm .coupon-editor-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .adm .coupon-delete-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+  .adm .coupon-delete-actions > button {
+    width: 100%;
+  }
+  .adm .coupon-library .flt-bar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(120px, 0.85fr);
+  }
+  .adm .coupon-library .flt-bar > .search {
+    min-width: 0;
+    width: 100%;
+  }
+  .adm .coupon-library .flt-bar [data-slot="select-trigger"] {
+    min-width: 0;
+    width: 100%;
+  }
+  .adm .coupon-editor-grid .f {
+    gap: 6px;
+  }
+  .adm .coupon-reservation-note {
+    padding: 10px 12px;
+  }
+}

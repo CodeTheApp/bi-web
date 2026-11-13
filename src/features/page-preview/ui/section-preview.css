@@ -1,0 +1,10 @@
+.adm .pg.section-workspace{grid-template-columns:190px minmax(0,1fr) minmax(0,calc(51.2195% - 111.658px));transition:grid-template-columns 280ms cubic-bezier(.22,.75,.28,1)}
+.adm .pg.section-workspace.preview-collapsed{grid-template-columns:190px minmax(0,1fr) minmax(0,44px)}
+.adm .section-preview .section-preview-content{transition:grid-template-rows 280ms cubic-bezier(.22,.75,.28,1),opacity 180ms ease}
+.adm .section-preview .section-preview-actions{overflow:hidden;max-width:100px;transition:opacity 140ms ease,max-width 240ms ease}
+.adm .section-preview.is-collapsed .section-preview-actions{opacity:0;max-width:0;pointer-events:none}
+.adm .section-preview.is-collapsed .section-preview-inner{visibility:hidden;transition:visibility 0s 280ms}
+.adm .section-preview.is-expanded .section-preview-inner{visibility:visible}
+@media(max-width:1180px){.adm .pg.section-workspace,.adm .pg.section-workspace.preview-collapsed{grid-template-columns:170px minmax(0,1fr)}}
+@media(max-width:680px){.adm .pg.section-workspace,.adm .pg.section-workspace.preview-collapsed{grid-template-columns:minmax(0,1fr)}}
+@media(prefers-reduced-motion:reduce){.adm .pg.section-workspace,.adm .section-preview .section-preview-content,.adm .section-preview .section-preview-actions{transition:none}}

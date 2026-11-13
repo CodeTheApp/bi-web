@@ -1,4 +1,4 @@
-import { LoginArt, PasswordForm } from "@/components/admin/LoginForms";
+import { LoginArt, PasswordForm } from "@/features/staff-auth";
 
 export const metadata = { title: "Criar senha" };
 

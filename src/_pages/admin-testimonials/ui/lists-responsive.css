@@ -1,0 +1,16 @@
+.adm .admin-lists-heading {
+  flex-wrap: wrap;
+  padding: 16px 16px 12px;
+}
+.adm .admin-lists-heading > b {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 600px) {
+  .adm .admin-lists-heading > b {
+    flex: 1 1 130px;
+  }
+  .adm .admin-lists-heading > .sp {
+    display: none;
+  }
+}

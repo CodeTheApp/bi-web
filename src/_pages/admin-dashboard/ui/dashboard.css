@@ -1,0 +1,120 @@
+.adm .dashboard-counters > .card,
+.adm .dashboard-counters > .admin-block-loading {
+  min-height: 114px;
+  min-width: 0;
+}
+.adm .dashboard-counter-error {
+  grid-column: 1/-1;
+  padding: 16px;
+}
+.adm .dashboard-messages {
+  min-height: 282px;
+}
+.adm .dashboard-messages .lst li {
+  padding: 0;
+}
+.adm .dashboard-message-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  min-width: 0;
+  width: 100%;
+  color: inherit;
+  text-decoration: none;
+}
+.adm .dashboard-message-link .t {
+  min-width: 0;
+}
+.adm .dashboard-message-link .av {
+  flex-shrink: 0;
+}
+.adm .dashboard-quick-links {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.adm .dashboard-quick-links a {
+  min-inline-size: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.adm .dashboard-quick-links .ic {
+  flex-shrink: 0;
+}
+.adm .dashboard-message-link:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: -3px;
+  border-radius: 8px;
+}
+.adm .dashboard-activity {
+  min-height: 254px;
+}
+.adm .dashboard-messages .empty {
+  min-height: 232px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: default;
+}
+@media (max-width: 720px) {
+  .adm .dashboard-message-link {
+    flex-wrap: wrap;
+  }
+  .adm .dashboard-message-link > .t {
+    flex: 1 1 calc(100% - 44px);
+  }
+  .adm .dashboard-message-link > .muted {
+    margin-left: auto;
+  }
+  .adm .dashboard-message-link .t :is(b, span) {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+}
+.adm .admin-dashboard-page {
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  container-type: inline-size;
+  container-name: admin-dashboard;
+}
+.adm .admin-dashboard-page > .ph,
+.adm .admin-dashboard-page > .ph > div {
+  min-inline-size: 0;
+}
+.adm .admin-dashboard-page > .ph {
+  flex-wrap: wrap;
+}
+.adm .admin-dashboard-page > .ph h1,
+.adm .dashboard-activity [data-slot="timeline-title"] {
+  overflow-wrap: anywhere;
+}
+.adm .admin-dashboard-page .dash > *,
+.adm .admin-dashboard-page .stack > * {
+  min-inline-size: 0;
+  max-inline-size: 100%;
+}
+.adm .dashboard-counters {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+@container admin-dashboard (max-width: 700px) {
+  .adm .dashboard-counters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .adm .admin-dashboard-page .dash {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@container admin-dashboard (max-width: 400px) {
+  .adm .admin-dashboard-page > .ph {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .adm .admin-dashboard-page > .ph > button {
+    align-self: flex-start;
+  }
+  .adm .dashboard-counters .stat {
+    padding: 12px;
+  }
+  .adm .dashboard-counters .stat :is(small, span) {
+    overflow-wrap: anywhere;
+  }
+}

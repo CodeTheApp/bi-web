@@ -1,8 +1,8 @@
 import "server-only";
 import { unstable_cache } from "next/cache";
-import { canSell, toPublic, type CategorySlug, type PublicProduct } from "@/lib/catalog/types";
-import { hasSupabase } from "@/lib/supabase/env";
-import { createSupabasePublic } from "@/lib/supabase/server";
+import { canSell, toPublic, type CategorySlug, type PublicProduct } from "@/entities/product";
+import { hasSupabase } from "@/shared/api/supabase/env";
+import { createSupabasePublic } from "@/shared/api/supabase/server";
 import { all, groupBy } from "./rows";
 import { catalogStore } from "./store";
 

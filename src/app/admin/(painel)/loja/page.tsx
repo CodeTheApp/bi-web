@@ -1,4 +1,4 @@
-import { ProductList } from "@/components/admin/views/Shop";
+import { ProductList } from "@/_pages/admin-products/ui/Shop";
 
 export const metadata = { title: "Produtos" };
 

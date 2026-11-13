@@ -1,0 +1,50 @@
+.adm .admin-pages-items-header,
+.adm .admin-pages-image-row,
+.adm .admin-pages-confirm-actions {
+  flex-wrap: wrap;
+}
+.adm .admin-pages-image-row > img {
+  flex-shrink: 0;
+}
+.adm .admin-pages-image-row > button {
+  max-width: 100%;
+  height: auto;
+  min-height: 30px;
+  white-space: normal;
+  text-align: left;
+}
+.adm .admin-pages-workspace .editor .hd > b {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.adm .admin-pages-workspace .hint {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 600px) {
+  .adm .admin-pages-items-header > b {
+    flex-basis: 100%;
+  }
+  .adm .admin-pages-footer > .sp {
+    display: none;
+  }
+  .adm .admin-pages-footer > button {
+    flex: 1 1 110px;
+    min-width: 0;
+    padding-inline: 10px;
+  }
+  .adm .admin-pages-workspace .section-preview-bar {
+    flex-wrap: wrap;
+  }
+  .adm .admin-pages-workspace .section-preview-toggle {
+    flex-basis: 130px;
+  }
+  .adm .admin-pages-workspace .section-preview-actions {
+    flex-shrink: 0;
+  }
+  .adm .admin-pages-confirm-actions > .sp {
+    display: none;
+  }
+  .adm .admin-pages-confirm-actions > button {
+    flex: 1 1 150px;
+  }
+}

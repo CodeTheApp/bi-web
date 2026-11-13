@@ -1,6 +1,8 @@
 import "server-only";
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { publishAdminEvent } from "@/server/admin-events/event-bus";
+import { demoFileEvent } from "@/server/admin-events/demo-file-event";
 
 /**
  * Modo demonstração: guarda o estado em data/*.json para sobreviver a reinícios do servidor local.
@@ -23,6 +25,8 @@ const timers = new Map<string, ReturnType<typeof setTimeout>>();
 
 /** Grava logo depois da última mudança (agrupa várias mudanças seguidas numa escrita só). */
 export function writeDemoSoon(name: string, data: () => unknown) {
+  const event = demoFileEvent(name);
+  if (event) publishAdminEvent(event.topics, event.workspace);
   clearTimeout(timers.get(name));
   timers.set(
     name,

@@ -1,6 +1,6 @@
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
-import { createSupabaseServer } from "@/lib/supabase/server";
+import { createSupabaseServer } from "@/shared/api/supabase/server";
 
 /** Volta dos links de e-mail do Supabase (convite e nova senha) e abre a sessão. */
 export async function GET(req: NextRequest) {

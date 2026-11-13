@@ -1,9 +1,9 @@
 "use server";
 import { updateTag } from "next/cache";
 import { z } from "zod";
-import { fetchVideoTitles, importCsv, isMediaCsv, matchMedia, readMediaRows, slugify } from "@/lib/catalog/import";
-import { isVideoUrl, mediaKey } from "@/lib/catalog/media";
-import { categoryName, PRODUCT_STATUS, productSchema, STOCK_REASON_LABEL, STOCK_REASONS, variantLabel, type ImportResult, type Product } from "@/lib/catalog/types";
+import { fetchVideoTitles, importCsv, isMediaCsv, matchMedia, readMediaRows, slugify } from "@/entities/product";
+import { isVideoUrl, mediaKey } from "@/entities/product";
+import { categoryName, PRODUCT_STATUS, productSchema, STOCK_REASON_LABEL, STOCK_REASONS, variantLabel, type ImportResult, type Product } from "@/entities/product";
 import { ctx, run } from "@/server/admin/guard";
 import { CATALOG_TAG } from "./public";
 import { getCatalogRepo } from "./repo";

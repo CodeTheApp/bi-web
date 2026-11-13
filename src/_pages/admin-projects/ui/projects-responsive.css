@@ -1,0 +1,32 @@
+.adm .admin-projects-heading > div {
+  min-width: 0;
+}
+.adm .admin-projects-heading h1,
+.adm .admin-projects-editor .seo,
+.adm .admin-projects-cards .bd {
+  overflow-wrap: anywhere;
+}
+.adm .admin-projects-actions {
+  flex-wrap: wrap;
+}
+.adm .admin-projects-editor .chipsin > .tag {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.adm .admin-projects-editor .chipsin > input {
+  min-width: 0;
+  max-width: 100%;
+}
+@media (max-width: 600px) {
+  .adm .admin-projects-actions {
+    width: 100%;
+  }
+  .adm .admin-projects-actions > :is(button, a) {
+    flex: 1 1 130px;
+    min-width: 0;
+    height: auto;
+    min-height: 34px;
+    white-space: normal;
+  }
+}

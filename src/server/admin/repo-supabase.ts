@@ -1,10 +1,13 @@
 import "server-only";
-import { SECTION_KEYS, SECTION_NAMES, sectionSchema, settingsSchema, type SectionKey } from "@/lib/content/schema";
-import { seedSections } from "@/lib/content/seed";
-import type { Json } from "@/lib/supabase/database.types";
-import { createSupabaseServer, createSupabaseService } from "@/lib/supabase/server";
+import { normalizeSettings, normalizeSectionOrder, SECTION_NAMES, sectionSchema, type SectionKey } from "@/entities/site-content";
+import { seedSections } from "@/entities/site-content";
+import type { Json } from "@/shared/api/supabase/database.types";
+import { createSupabaseServer, createSupabaseService } from "@/shared/api/supabase/server";
 import { slugify, type AdminRepo } from "./repo";
-import type { AdminProject, MediaItem, Message, ThreadSummary } from "./types";
+import type { AdminProject, MediaItem, Message, ThreadSummary } from "@/entities/admin";
+import { canonicalMediaCategory, mediaCategoryKey, mediaCategoryNameSchema, mediaName } from "@/entities/media";
+import { sectionUsesMedia } from "@/entities/site-content";
+import { assertUserEditAllowed } from "@/features/manage-users";
 
 type Db = Awaited<ReturnType<typeof createSupabaseServer>>;
 
@@ -61,9 +64,9 @@ export async function supabaseRepo(): Promise<AdminRepo> {
     async me() {
       const { data } = await db.auth.getUser();
       if (!data.user) return null;
-      const { data: prof } = await db.from("profiles").select("name, role").eq("id", data.user.id).maybeSingle();
+      const { data: prof } = await db.from("profiles").select("name, role, avatar_url").eq("id", data.user.id).maybeSingle();
       if (!prof) return null; // logado mas sem perfil: não é da equipe
-      return { id: data.user.id, name: prof.name || data.user.email || "Equipe", email: data.user.email ?? "", role: prof.role };
+      return { id: data.user.id, name: prof.name || data.user.email || "Equipe", email: data.user.email ?? "", role: prof.role, avatarUrl: prof.avatar_url };
     },
     async signIn(email, password) {
       const { error } = await db.auth.signInWithPassword({ email, password });
@@ -102,39 +105,55 @@ export async function supabaseRepo(): Promise<AdminRepo> {
 
     async sections() {
       const rows = must(await db.from("sections").select("key, draft, published, status").order("position"));
-      return SECTION_KEYS.map((key) => {
+      return normalizeSectionOrder(rows.map((row) => row.key)).map((key) => {
         const r = rows.find((x) => x.key === key);
         return r
           ? { key, draft: parseSection(r.draft, key), published: parseSection(r.published, key), status: r.status }
           : { key, draft: seedSections[key], published: seedSections[key], status: "publicado" as const };
       });
     },
+    async reorderSections(keys) {
+      const rows = new Map((await repo.sections()).map((row) => [row.key, row]));
+      const { data } = await db.auth.getUser();
+      must(await db.from("sections").upsert(normalizeSectionOrder(keys).map((key, position) => {
+        const row = rows.get(key)!;
+        return {
+          key, position, draft: row.draft as unknown as Json, published: row.published as unknown as Json, status: row.status,
+          updated_at: new Date().toISOString(), updated_by: data.user?.id ?? null,
+        };
+      })));
+    },
     async saveSection(key, draft, publish) {
+      const existing = must(await db.from("sections").select("key").eq("key", key).maybeSingle());
+      if (!existing) await repo.reorderSections((await repo.sections()).map((row) => row.key));
       const { data } = await db.auth.getUser();
       const clean = sectionSchema.parse(draft);
       const row = {
-        key, draft: clean as unknown as Json, status: publish ? ("publicado" as const) : ("rascunho" as const), position: SECTION_KEYS.indexOf(key),
+        draft: clean as unknown as Json, status: publish ? ("publicado" as const) : ("rascunho" as const),
         updated_at: new Date().toISOString(), updated_by: data.user?.id ?? null, ...(publish ? { published: clean as unknown as Json } : {}),
       };
-      must(await db.from("sections").upsert(row));
+      must(await db.from("sections").update(row).eq("key", key));
     },
     async setSectionVisible(key, visible) {
       const rows = await repo.sections();
       const r = rows.find((x) => x.key === key)!;
+      const existing = must(await db.from("sections").select("key").eq("key", key).maybeSingle());
+      if (!existing) await repo.reorderSections(rows.map((row) => row.key));
       must(
-        await db.from("sections").upsert({
-          key, position: SECTION_KEYS.indexOf(key), status: r.status,
+        await db.from("sections").update({
+          status: r.status,
           draft: { ...r.draft, visible } as unknown as Json, published: { ...r.published, visible } as unknown as Json,
-        }),
+        }).eq("key", key),
       );
     },
 
     async settings() {
-      const { data } = await db.from("settings").select("data").eq("id", 1).maybeSingle();
-      return settingsSchema.parse((data?.data as object) ?? {});
+      const { data, error } = await db.from("settings").select("data").eq("id", 1).maybeSingle();
+      if (error) throw new Error(error.message);
+      return normalizeSettings(data?.data ?? {});
     },
     async saveSettings(s) {
-      must(await db.from("settings").upsert({ id: 1, data: settingsSchema.parse(s) as unknown as Json, updated_at: new Date().toISOString() }));
+      must(await db.from("settings").upsert({ id: 1, data: normalizeSettings(s) as unknown as Json, updated_at: new Date().toISOString() }));
     },
 
     projects: () => projectsWithGallery(),
@@ -171,26 +190,47 @@ export async function supabaseRepo(): Promise<AdminRepo> {
     async reorderProjects(ids) {
       await Promise.all(ids.map((id, i) => db.from("projects").update({ position: i }).eq("id", id)));
     },
+    async setProjectStatus(id, status) {
+      must(await db.from("projects").update({ status, updated_at: new Date().toISOString() }).eq("id", id));
+    },
     async deleteProject(id) {
       must(await db.from("projects").delete().eq("id", id));
     },
 
     async media() {
-      const [ms, ps, ss] = await Promise.all([db.from("media").select("*").order("created_at", { ascending: false }), projectsWithGallery(), repo.sections()]);
+      const [ms, ps, ss, categories, profiles] = await Promise.all([db.from("media").select("*").order("created_at", { ascending: false }), projectsWithGallery(), repo.sections(), repo.mediaCategories(), db.from("profiles").select("name, avatar_url")]);
       return must(ms).map((m): MediaItem => {
         const uses = [
           ...ps.filter((p) => p.cover === m.url || p.gallery.some((g) => g.url === m.url)).map((p) => p.title),
-          ...ss.filter((s) => s.draft.image === m.url || s.published.image === m.url).map((s) => SECTION_NAMES[s.key]),
+          ...ss.filter((section) => sectionUsesMedia(section, m.url)).map((section) => SECTION_NAMES[section.key]),
+          ...must(profiles).filter((profile) => profile.avatar_url === m.url).map((profile) => `Avatar de ${profile.name || "usuário"}`),
         ];
-        return { id: m.id, url: m.url, alt: m.alt, width: m.width, height: m.height, createdAt: m.created_at, uses };
+        return { kind: m.kind ?? "image", mimeType: m.mime_type ?? undefined, archived: m.archived, id: m.id, url: m.url, name: mediaName(m), category: canonicalMediaCategory(m.category, categories), alt: m.alt, width: m.width, height: m.height, createdAt: m.created_at, uses };
       });
     },
+    async mediaCategories() {
+      return must(await db.from("media_categories").select("name").order("name")).map((category) => category.name);
+    },
+    async createMediaCategory(name) {
+      const clean = mediaCategoryNameSchema.parse(name);
+      const result = await db.from("media_categories").insert({ key: mediaCategoryKey(clean), name: clean }).select("name").single();
+      if (result.error?.code === "23505") throw new Error("Já existe uma categoria com esse nome.");
+      return must(result).name;
+    },
     async addMedia(m) {
-      const r = must(await db.from("media").insert({ url: m.url, s3_key: m.key, width: m.width, height: m.height, alt: m.alt }).select("*").single());
-      return { id: r.id, url: r.url, alt: r.alt, width: r.width, height: r.height, createdAt: r.created_at, uses: [] };
+      const category = canonicalMediaCategory(m.category, await repo.mediaCategories());
+      const r = must(await db.from("media").insert({ kind: m.kind ?? "image", mime_type: m.mimeType ?? null, archived: false, url: m.url, s3_key: m.key, width: m.width, height: m.height, alt: m.alt, name: m.name ?? "", category }).select("*").single());
+      return { kind: r.kind, mimeType: r.mime_type ?? undefined, archived: r.archived, id: r.id, url: r.url, name: mediaName(r), category: r.category, alt: r.alt, width: r.width, height: r.height, createdAt: r.created_at, uses: [] };
+    },
+    async setMediaArchived(id, archived) {
+      must(await db.from("media").update({ archived }).eq("id", id));
     },
     async setMediaAlt(id, alt) {
       must(await db.from("media").update({ alt }).eq("id", id));
+    },
+    async updateMediaMetadata(id, metadata) {
+      const category = canonicalMediaCategory(metadata.category, await repo.mediaCategories());
+      must(await db.from("media").update({ ...metadata, category }).eq("id", id));
     },
     async deleteMedia(id) {
       const r = must(await db.from("media").delete().eq("id", id).select("s3_key").single());
@@ -205,17 +245,22 @@ export async function supabaseRepo(): Promise<AdminRepo> {
       const rows = must(await db.from("faqs").select("*").order("position"));
       return rows.map((f) => ({ id: f.id, a: f.question, b: f.answer, visible: f.visible }));
     },
-    async saveList(kind, items) {
-      // ids vêm do navegador (uuid): gravar de novo a mesma lista não duplica nada
-      const ids = items.map((i) => i.id);
-      const del = db.from(kind).delete();
-      must(await (ids.length ? del.not("id", "in", `(${ids.join(",")})`) : del.neq("id", "00000000-0000-0000-0000-000000000000")));
-      if (items.length) {
-        const rows =
-          kind === "testimonials"
-            ? items.map((it, i) => ({ id: it.id, quote: it.a, author: it.b, location: it.c ?? "", visible: it.visible, position: i }))
-            : items.map((it, i) => ({ id: it.id, question: it.a, answer: it.b, visible: it.visible, position: i }));
-        must(await db.from(kind).upsert(rows as never));
+    async deleteListItem(kind, id) {
+      must(await db.from(kind).delete().eq("id", id));
+    },
+    async saveList(kind, items, createIds = []) {
+      const explicitCreates = new Set(createIds);
+      const rows = kind === "testimonials"
+        ? items.map((it, position) => ({ id: it.id, quote: it.a, author: it.b, location: it.c ?? "", visible: it.visible, position }))
+        : items.map((it, position) => ({ id: it.id, question: it.a, answer: it.b, visible: it.visible, position }));
+      const created = rows.filter((row) => explicitCreates.has(row.id));
+      // INSERT ... ON CONFLICT DO NOTHING makes a retried creation idempotent.
+      // No ordinary edit can INSERT a row that another client has deleted.
+      if (created.length) {
+        must(await db.from(kind).upsert(created as never, { onConflict: "id", ignoreDuplicates: true }));
+      }
+      for (const { id, ...edit } of rows) {
+        must(await db.from(kind).update(edit).eq("id", id));
       }
       return repo.list(kind);
     },
@@ -259,12 +304,44 @@ export async function supabaseRepo(): Promise<AdminRepo> {
 
     async users() {
       const svc = createSupabaseService();
-      const profs = must(await db.from("profiles").select("id, name, role").order("created_at"));
-      const { data } = await svc.auth.admin.listUsers({ perPage: 200 });
+      const profs = must(await db.from("profiles").select("id, name, role, avatar_url").order("created_at"));
+      const { data, error } = await svc.auth.admin.listUsers({ perPage: 1000 });
+      if (error) throw new Error(error.message);
       return profs.map((p) => {
         const u = data?.users.find((x) => x.id === p.id);
-        return { id: p.id, name: p.name || u?.email || "—", email: u?.email ?? "", role: p.role, status: u?.last_sign_in_at ? ("Ativo" as const) : ("Convite pendente" as const) };
+        return { id: p.id, name: p.name || u?.email || "—", email: u?.email ?? "", role: p.role, avatarUrl: p.avatar_url, status: u?.last_sign_in_at ? ("Ativo" as const) : ("Convite pendente" as const) };
       });
+    },
+    async updateOwnProfile(id, input) {
+      const me = await repo.me();
+      if (!me || me.id !== id) throw new Error("Só é possível editar o seu próprio perfil.");
+      const result = await db.rpc("update_own_staff_profile", { p_name: input.name, p_avatar_url: input.avatarUrl });
+      if (result.error) throw new Error(result.error.message);
+      return { ...me, ...input };
+    },
+    async updateUser(id, input) {
+      const actor = await repo.me();
+      if (!actor || actor.role !== "admin") throw new Error("Só administradores podem editar usuários.");
+      const users = await repo.users();
+      const target = users.find((user) => user.id === id);
+      if (!target) throw new Error("Usuário não encontrado.");
+      assertUserEditAllowed(actor, target, input, users);
+      const svc = createSupabaseService();
+      const emailChanged = input.email.toLowerCase() !== target.email.toLowerCase();
+      if (emailChanged) {
+        const result = await svc.auth.admin.updateUserById(id, { email: input.email });
+        if (result.error) throw new Error(result.error.message);
+      }
+      try {
+        must(await svc.from("profiles").update({ name: input.name, role: input.role, avatar_url: input.avatarUrl }).eq("id", id).select("id").single());
+      } catch (error) {
+        if (emailChanged) {
+          const rollback = await svc.auth.admin.updateUserById(id, { email: target.email });
+          if (rollback.error) throw new Error("O perfil não foi salvo, mas o e-mail foi alterado. Atualize a lista e revise o usuário.");
+        }
+        throw error;
+      }
+      return { ...target, ...input };
     },
     async invite(name, email, role) {
       const svc = createSupabaseService();

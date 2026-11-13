@@ -1,0 +1,10 @@
+.adm .admin-undo-action{height:30px;font-size:11px;max-width:100%}
+.adm .admin-hold-action{height:34px;min-width:140px;border-radius:11px;font-size:12px}
+.adm .media-archive-control{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:8px 0 3px}
+.adm .media-archive-control>small{font-size:10px;color:var(--muted-foreground)}
+.adm .media-library-archive{min-width:115px;max-width:170px;flex:0 1 135px}
+.adm .media-library-toolbar{flex-wrap:wrap}
+.adm .admin-product-readiness{max-width:none;margin-bottom:14px}
+.adm .admin-product-readiness button{font-family:inherit}
+html[data-admin-theme="dark"] .adm .admin-hold-action{box-shadow:none}
+@media(max-width:600px){.adm .media-library-archive{max-width:none;flex:1 1 130px}.adm .media-library-toolbar .media-library-search{flex-basis:100%}}

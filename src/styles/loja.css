@@ -90,7 +90,12 @@ html.drawer-open{overflow:hidden}
 @media (hover:none){.pcard .pfav{opacity:1;transform:none}}
 .pimg{position:relative;aspect-ratio:4/5;border-radius:14px;overflow:hidden;background:var(--bege-2)}
 .pimg img{width:100%;height:100%;object-fit:cover;transition:transform 1.4s var(--ease)}
-.pcard:hover .pimg img{transform:scale(1.04)}
+.pcard:hover .pimg:not(.has-light-pair) img{transform:scale(1.04)}
+.pimg.has-light-pair img{transition:opacity .55s ease}
+.pimg .product-light-on{position:absolute;inset:0;opacity:0;pointer-events:none}
+@media (hover:hover) and (pointer:fine){
+  .plink:hover .product-light-on,.plink:focus-visible .product-light-on{opacity:1}
+}
 .pimg.art,.frame.art{display:grid;place-items:center;background:radial-gradient(60% 46% at 50% 58%,rgba(249,162,38,.16),transparent 70%),linear-gradient(180deg,#F7EEE6,var(--bege-2))}
 .pimg .pa{width:52%;height:auto;color:var(--marrom-calmo);opacity:.55;transition:opacity .8s var(--ease),transform 1.4s var(--ease)}
 .pcard:hover .pimg .pa{opacity:.78;transform:translateY(-4px)}
@@ -221,6 +226,14 @@ img.tall{position:absolute;left:50%;top:50%;width:237%!important;max-width:none;
 .pimg .vtag{position:absolute;right:10px;bottom:10px;display:inline-flex;align-items:center;gap:5px;font:600 11px/1 var(--texto);padding:6px 9px 6px 7px;border-radius:999px;background:rgba(41,16,7,.72);color:var(--branco);backdrop-filter:blur(6px)}
 .pimg .vtag svg{width:11px;height:11px;fill:var(--ambar-golden)}
 .pdp-gal .frame{position:relative}
+.pdp-gal .frame.has-light-pair img{animation:none;transition:opacity .55s ease}
+.pdp-gal .frame .product-light-on{position:absolute;inset:0;opacity:0;pointer-events:none}
+@media (hover:hover) and (pointer:fine){
+  .pdp-gal .frame.has-light-pair:hover .product-light-on,.pdp-gal:focus-visible .product-light-on{opacity:1}
+}
+@media (prefers-reduced-motion:reduce){
+  .pimg.has-light-pair img,.pdp-gal .frame.has-light-pair img{transition:none;animation:none}
+}
 .frame.video{background:var(--marrom-escuro)}
 .frame.video iframe,.frame.video video{position:absolute;inset:0;width:100%;height:100%;border:0;background:transparent;z-index:1}
 .frame .vposter{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.5;filter:blur(2px)}

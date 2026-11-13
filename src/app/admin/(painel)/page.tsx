@@ -1,4 +1,4 @@
-import { Dashboard } from "@/components/admin/views/Dashboard";
+import { Dashboard } from "@/_pages/admin-dashboard/ui/Dashboard";
 import { getRepo } from "@/server/admin/repo";
 
 export const metadata = { title: "Início" };

@@ -1,0 +1,6 @@
+.kokonut-save-status{font-family:inherit}
+html[data-admin-theme=dark] .kokonut-save-status[data-save-state=saved]{color:#9de1ba;background:rgba(76,168,120,.14)}
+html[data-admin-theme=dark] .kokonut-save-status[data-save-state=editing]{color:#c3c6cf;background:rgba(167,173,190,.1)}
+html[data-admin-theme=dark] .kokonut-save-status[data-save-state=saving]{color:#9ed6f0;background:rgba(71,152,188,.15)}
+html[data-admin-theme=dark] .kokonut-save-status[data-save-state=error]{color:#f0afaf;background:rgba(192,91,91,.15)}
+html[data-admin-theme=dark] .kokonut-save-status[data-save-state=offline]{color:#efc594;background:rgba(173,124,65,.15)}

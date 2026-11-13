@@ -1,0 +1,11 @@
+/* The public stylesheet is isolated in a real browsing context; no admin overrides. */
+html:has(.site-section-preview),
+body:has(.site-section-preview) {
+  margin: 0;
+  min-height: 0;
+  overflow-x: hidden;
+  background: var(--bege);
+}
+.site-section-preview {
+  display: flow-root;
+}

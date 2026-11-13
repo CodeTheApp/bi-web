@@ -1,4 +1,4 @@
-import { Media } from "@/components/admin/views/Media";
+import { Media } from "@/_pages/admin-media/ui/Media";
 
 export const metadata = { title: "Mídia" };
 

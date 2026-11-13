@@ -1,27 +1,31 @@
 import "server-only";
-import { slugify } from "@/lib/catalog/import";
-import { summarize, variantLabel, type Product, type StockMove } from "@/lib/catalog/types";
+import { slugify } from "@/entities/product";
+import { summarize, variantLabel, type Product, type StockMove } from "@/entities/product";
 import { newId, shortId, type CatalogRepo } from "./repo";
 import { catalogStore, persistCatalog } from "./store";
+import { demoAllowed } from "@/server/admin/repo";
+import { getDemoDataMode } from "@/server/demo-workspace";
 
 const clone = <T,>(x: T): T => structuredClone(x);
 
 export function demoCatalog(): CatalogRepo {
-  const repo = build();
+  if (!demoAllowed()) throw new Error("Demonstração indisponível neste ambiente.");
+  const mode = getDemoDataMode();
+  const state = catalogStore(mode);
+  const repo = build(state);
   // toda mudança é gravada em data/ para sobreviver a reinícios do servidor local
   for (const k of ["create", "save", "remove", "setStatus", "setPolicy", "move", "sell", "importProducts", "appendMedia"] as const) {
     const fn = repo[k] as (...a: unknown[]) => Promise<unknown>;
     (repo as unknown as Record<string, unknown>)[k] = async (...a: unknown[]) => {
       const r = await fn.apply(repo, a);
-      persistCatalog();
+      persistCatalog(mode, state);
       return r;
     };
   }
   return repo;
 }
 
-function build(): CatalogRepo {
-  const S = catalogStore();
+function build(S: ReturnType<typeof catalogStore>): CatalogRepo {
   const variantIndex = () => {
     const m = new Map<string, { p: Product; v: Product["variants"][number] }>();
     for (const p of S.products) for (const v of p.variants) m.set(v.id, { p, v });

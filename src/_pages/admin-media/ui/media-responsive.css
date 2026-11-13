@@ -1,0 +1,29 @@
+.adm .admin-media-grid .media-card-title {
+  overflow-wrap: anywhere;
+}
+.adm .admin-media-confirm-actions {
+  flex-wrap: wrap;
+}
+@media (max-width: 600px) {
+  .adm
+    .admin-media-toolbar
+    :is(
+      .media-library-search,
+      .media-library-category,
+      .media-library-archive
+    ) {
+    flex: 1 1 100%;
+    width: 100%;
+    min-width: 0;
+  }
+  .adm .admin-media-toolbar [data-slot="select-trigger"] {
+    width: 100%;
+    min-width: 0;
+  }
+  .adm .admin-media-confirm-actions > .sp {
+    display: none;
+  }
+  .adm .admin-media-confirm-actions > button {
+    flex: 1 1 150px;
+  }
+}

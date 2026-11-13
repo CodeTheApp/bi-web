@@ -7,8 +7,8 @@
  * A pasta data/ fica fora do git (o repositório é público e os dados são do cliente).
  */
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { fetchVideoTitles, importCsv, matchMedia, readMediaRows } from "../src/lib/catalog/import";
-import { isVideoUrl, mediaKey } from "../src/lib/catalog/media";
+import { fetchVideoTitles, importCsv, matchMedia, readMediaRows } from "@/entities/product";
+import { isVideoUrl, mediaKey } from "@/entities/product";
 
 async function main() {
   const [file, ...mediaFiles] = process.argv.slice(2);

@@ -1,0 +1,50 @@
+.adm .admin-inbox-identity {
+  flex: 1 1 200px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.adm .admin-inbox-thread-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+.adm .admin-inbox-status {
+  width: 150px;
+  max-width: 100%;
+}
+.adm .admin-inbox-inbox .msg {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.adm .admin-inbox-inbox .msg .w {
+  flex-wrap: wrap;
+}
+.adm .admin-inbox-inbox .att {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.adm .admin-inbox-inbox .att > svg {
+  flex-shrink: 0;
+}
+.adm .admin-inbox-inbox .ib-l .s {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 600px) {
+  .adm .admin-inbox-identity {
+    flex-basis: 0;
+  }
+  .adm .admin-inbox-thread-actions {
+    flex-basis: 100%;
+  }
+  .adm .admin-inbox-thread-actions > .tag {
+    flex-basis: 100%;
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+  .adm .admin-inbox-inbox .reply .tpl > .muted {
+    flex-basis: 100%;
+  }
+}

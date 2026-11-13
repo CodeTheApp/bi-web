@@ -1,9 +1,10 @@
 /**
- * Gera supabase/seed.sql a partir do conteúdo inicial (src/lib/content/seed.ts).
+ * Gera supabase/seed.sql a partir do conteúdo inicial (src/entities/site-content/model/seed.ts).
  * Uso: npm run db:seed-sql
  */
-import { seedContent } from "../src/lib/content/seed";
-import { SECTION_KEYS } from "../src/lib/content/schema";
+import { seedContent } from "@/entities/site-content";
+import { SECTION_KEYS } from "@/entities/site-content";
+import { initialMediaCategory, mediaName } from "@/entities/media";
 
 const q = (v: unknown) => (v == null ? "null" : `'${String(v).replace(/'/g, "''")}'`);
 const j = (v: unknown) => `${q(JSON.stringify(v))}::jsonb`;
@@ -23,7 +24,7 @@ seedContent.projects.forEach((p, i) => {
 const urls = new Set<string>();
 seedContent.projects.forEach((p) => { urls.add(p.cover); p.gallery.forEach((g) => urls.add(g.url)); });
 ["/img/camila.jpg", "/img/escada.jpg", "/img/pendentes.jpg", "/img/prod-1.jpg", "/img/prod-2.jpg", "/img/prod-3.jpg", "/img/prod-4.jpg"].forEach((u) => urls.add(u));
-out.push(`insert into public.media (url, alt) values ${[...urls].map((u) => `(${q(u)}, '')`).join(", ")};`);
+out.push(`insert into public.media (url, name, category, alt) values ${[...urls].map((url) => `(${q(url)}, ${q(mediaName({ url }))}, ${q(initialMediaCategory(url))}, '')`).join(", ")};`);
 
 seedContent.testimonials.forEach((t, i) => out.push(`insert into public.testimonials (quote, author, location, position, visible) values (${q(t.quote)}, ${q(t.author)}, ${q(t.location)}, ${i}, true);`));
 seedContent.faqs.forEach((f, i) => out.push(`insert into public.faqs (question, answer, position, visible) values (${q(f.question)}, ${q(f.answer)}, ${i}, true);`));

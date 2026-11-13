@@ -1,0 +1,8 @@
+/* Tooltips are descriptions, not pointer targets. Include Radix's positioning
+   wrapper so the complete visual overlay allows clicks to reach controls below.
+   This also applies while a modal's DismissableLayer sets inline pointer styles. */
+[data-radix-popper-content-wrapper]:has(> [data-slot="tooltip-content"]),
+[data-slot="tooltip-content"],
+[data-slot="tooltip-content"] * {
+  pointer-events: none !important;
+}

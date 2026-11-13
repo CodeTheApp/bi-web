@@ -1,0 +1,20 @@
+/* Shared Lucide roots keep the public site's existing rhythm and control geometry. */
+.nav .burger{color:var(--branco)}
+.nav.light .burger{color:var(--tinta,var(--marrom-escuro))}
+.nav.open .burger{color:var(--branco)}
+.nav .burger>svg{flex:0 0 auto}
+.qa .pm:has(svg){display:grid;place-items:center}
+.qa .pm:has(svg)::before,.qa .pm:has(svg)::after{display:none}
+.depo .arrows button{display:inline-grid;place-items:center}
+.thumbs button .pl.lucide-play{display:grid;place-items:center;color:var(--marrom-escuro)}
+.thumbs button .pl.lucide-play::after{display:none}
+.thumbs button .pl.lucide-play svg{margin-left:1px}
+.pdp-gal .gnav:has(svg){padding:0}
+.fchips a>svg{flex:0 0 auto}
+.pg-arrow:has(svg){display:inline-flex;align-items:center;gap:6px}
+.foot .legal a:has(svg){display:inline-flex;align-items:center;gap:4px}
+.p-hero .crumb a:has(svg){display:inline-flex;align-items:center;gap:5px}
+.fav.on .si{animation:none}
+.fhead button:has(svg){display:grid;place-items:center;min-width:32px;min-height:32px}
+.qa.open .pm:has(svg){transform:none}
+@media(prefers-reduced-motion:reduce){.fav:hover,.btn:hover .ar,.ulink:hover .ar{transform:none}}

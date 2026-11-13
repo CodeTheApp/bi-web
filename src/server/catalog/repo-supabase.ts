@@ -1,8 +1,8 @@
 import "server-only";
-import { slugify } from "@/lib/catalog/import";
-import { summarize, variantLabel, type CategorySlug, type Product, type StockMove, type Variant } from "@/lib/catalog/types";
-import type { Json, Tables } from "@/lib/supabase/database.types";
-import { createSupabaseServer, createSupabaseService } from "@/lib/supabase/server";
+import { slugify } from "@/entities/product";
+import { summarize, variantLabel, type CategorySlug, type Product, type StockMove, type Variant } from "@/entities/product";
+import type { Json, Tables } from "@/shared/api/supabase/database.types";
+import { createSupabaseServer, createSupabaseService } from "@/shared/api/supabase/server";
 import { newId, shortId, type CatalogRepo } from "./repo";
 import { all, chunks, groupBy, must } from "./rows";
 

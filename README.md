@@ -1,127 +1,164 @@
-# Brasília Iluminação — site e painel
+# Brasília Iluminação — site, loja e painel
 
-Site institucional com movimento discreto (rolagem suave, revelações por esmaecimento, uma cena fixada no Luminotécnico), uma loja (`/loja`) e um painel para editar textos, projetos, fotos, depoimentos, produtos e estoque e responder os contatos por e-mail.
+Site institucional com animações de rolagem, galeria de projetos e loja com favoritos, sacola, cupons e checkout. O painel reúne conteúdo, mídia, produtos, estoque, pedidos, clientes, mensagens, analytics e relatórios.
 
-| Camada | Escolha |
-| --- | --- |
-| Front-end | Next.js 16 (App Router, React 19), TypeScript, Tailwind v4 |
-| Movimento | GSAP + ScrollTrigger e Lenis, em tom contido (sem cursor personalizado, preloader ou 3D) |
-| Painel | TanStack Query + Server Actions; componentes [shadcn/ui](https://ui.shadcn.com) (Radix) e [ReUI](https://reui.io) |
-| Back-end e banco | Supabase (Postgres com RLS, Auth, Realtime) |
-| Arquivos | Amazon S3 + CloudFront (envio direto do navegador com URL assinada) |
-| E-mail | Resend + React Email (envio, recebimento e status de entrega) |
-| Hospedagem | AWS Amplify Hosting (SSR) · DNS no Route 53 |
-| Tipografia | Belleza (títulos, no lugar da Monterchi do manual) + Montserrat |
-
-### Componentes do painel (shadcn/ui + ReUI)
-
-O painel usa os componentes da ReUI onde eles resolvem algo de verdade, sobre a base do shadcn/ui, tudo no tema da marca (`src/app/globals.css`):
-
-| Onde | Componente |
-| --- | --- |
-| Ordenar itens, projetos, galeria, depoimentos e FAQ | ReUI **Sortable** (dnd-kit: mouse, toque e teclado) |
-| Envio de fotos (botão e área de soltar) | ReUI **useFileUpload** |
-| Status (novo, publicado, rascunho…) | ReUI **Badge** |
-| Aviso do modo demonstração e erros | ReUI **Alert** |
-| Atividade recente no Início | ReUI **Timeline** |
-| Usuários em Configurações | ReUI **Data Grid** (TanStack Table) |
-| WhatsApp em Configurações | ReUI **Phone Input** |
-| Botões, campos, seletores, diálogos, interruptores, avisos | shadcn/ui (Radix) + Sonner |
-
-Os arquivos ficam em `src/components/ui` e `src/components/reui` e vêm da CLI: `npx shadcn@latest add @reui/<nome>` (o registro `@reui` já está em `components.json`). O site público não usa esses componentes: ele mantém o visual e as animações do protótipo aprovado.
+| Área                 | Implementação                                                                       |
+| -------------------- | ----------------------------------------------------------------------------------- |
+| Aplicação            | Next.js 16, App Router, React 19, TypeScript e Tailwind v4                          |
+| Movimento            | GSAP, ScrollTrigger e Lenis no site; Motion nos componentes interativos             |
+| Interface            | Shadcn/Radix, ReUI e Kokonut UI, com componentes locais em `src/shared/ui`          |
+| Ícones               | Lucide e fontes animadas adaptadas de Lucide Animated, por uma facade compartilhada |
+| Estado               | nuqs na URL, Zustand persist no navegador e TanStack Query para dados do servidor   |
+| Notificações         | Sileo, com um Toaster global e adaptador em `src/shared/lib/notify.ts`              |
+| Banco e autenticação | Supabase: Postgres, RLS, Auth e Realtime                                            |
+| Arquivos e e-mail    | S3/CloudFront; Resend e React Email                                                 |
+| Tipografia           | Belleza e Montserrat no site; fontes de sistema no painel                           |
 
 ## Rodar no computador
 
 ```bash
 npm install
-npm run dev        # http://localhost:3000  ·  painel em /admin
+npm run dev        # http://localhost:3000 · painel em /admin
 ```
 
-Sem nenhuma variável de ambiente o projeto já funciona:
+Sem Supabase, o painel abre em demonstração no desenvolvimento. Conteúdo, mensagens e analytics de demonstração ficam em memória; catálogo e dados da loja usam arquivos locais em `data/`, fora do Git. O modo demo em produção exige `ADMIN_DEMO=1`. Copie `.env.example` para `.env.local` para configurar os serviços.
 
-- o **site** usa o conteúdo inicial (`src/lib/content/seed.ts`, os textos do protótipo aprovado);
-- o **painel** abre em **modo demonstração**: dados de exemplo em memória, sem login e sem envio de e-mail. O que for publicado no painel aparece no site enquanto o servidor estiver de pé. Bom para apresentar e testar a interface.
-
-Copie `.env.example` para `.env.local` e preencha as chaves para ligar cada serviço.
-
-Outros comandos: `npm run typecheck`, `npm run lint`, `npm test`, `npm run build`, `npm run db:seed-sql` (regera `supabase/seed.sql` a partir do conteúdo inicial).
+Comandos: `npm run typecheck`, `npm run lint`, `npm test`, `npm run build`, `npm run db:seed-sql` e `npm run catalog:import`.
 
 ## Estrutura
 
-```
+```text
 src/
-  app/(site)/            home, /projetos/[slug], /loja, /loja/[slug], 404 — site público
-  app/admin/             painel: login, senha, (painel)/… telas, auth/confirm
-  app/api/email/         webhook do Resend (inbound + status) e anexos recebidos
-  components/site/       Nav, rodapé, hero editorial, cenas de rolagem
-  components/admin/      shell do painel, telas (views/), mídia, ordenação
-  lib/content/           schema (zod) e conteúdo inicial
-  lib/catalog/           produtos e variantes (zod), importador da planilha antiga, amostras de acabamento
-  lib/cobogo.ts          gramática das peças de cobogó (mesma regra no SVG e no 3D)
-  server/content.ts      leitura do conteúdo publicado, em cache com tags
-  server/admin/          ações do painel + repositório (Supabase ou demonstração)
-  server/catalog/        loja: vitrine em cache (tag catalog), ações e repositório de produtos e estoque
-  server/actions/        formulário de contato
-  emails/                modelos do React Email
-  styles/                site.css e admin.css, portados do protótipo
-supabase/migrations/     esquema, RLS, tempo real
+  app/                  rotas, layouts, providers e endpoints do Next.js
+  _pages/               composição das páginas públicas e administrativas
+  widgets/              home, header, rodapé, galeria, shell e visão geral de analytics
+  features/             edição, biblioteca de mídia, compra, cupons e preferências
+  entities/             produto, pedido, conteúdo, carrinho, favoritos e métricas
+  shared/
+    ui/                 Shadcn, ReUI, Kokonut, controles e ícones compartilhados
+    lib/                persistência, parsers, eventos e utilitários
+    api/                contratos e clientes Supabase
+  server/               autorização, actions, repositórios, cache, arquivos e e-mail
+  styles/               estilos públicos e tema administrativo
+  emails/               modelos React Email
+supabase/migrations/    esquema, políticas, analytics, mídia e checkout com cupons
 ```
 
-### Como o conteúdo chega ao site
+A direção das dependências segue Feature-Sliced Design. `_pages` evita conflito com o Pages Router do Next. Veja [Arquitetura](docs/architecture.md) e [APIs de estado](docs/public-state-apis.md).
 
-- Cada seção da home tem **rascunho** e **publicado** (`sections.draft` / `sections.published`). O público só consegue ler a coluna `published` (permissão por coluna no Postgres).
-- O site lê tudo com `unstable_cache` marcado com as tags `content` e `projects`. Ao publicar, o painel chama `updateTag()` e a próxima visita já vê a versão nova. As páginas continuam estáticas (rápidas) entre uma publicação e outra.
-- Usamos o modelo clássico de cache (`cacheComponents: false`) por previsibilidade no Amplify. Dá para migrar para `"use cache"` depois que o adaptador do Amplify suportar o Next 16 por completo.
+## Conteúdo e prévia ao vivo
 
-### Marcação nos textos do painel
+- **Páginas** edita as 13 seções da home. Ordem e visibilidade são controladas no painel; textos e imagens têm rascunho separado do publicado. As fotos das etapas do Luminotécnico são editáveis e acompanham a etapa na reordenação.
+- O salvamento automático usa fila por workspace. Publicar preserva alterações concorrentes e invalida as tags de conteúdo e o HTML da home. O público recebe somente o conteúdo publicado.
+- A prévia usa o mesmo `HomeContentView` da home em um iframe autenticado. Cada edição é transmitida por `postMessage`, validando origem, janela, seção, esquema e revisão. Não depende de salvar, não envia o rascunho na URL e mantém o iframe montado ao recolher/expandir. Oferece modos desktop e celular; links e envios ficam desativados nesse quadro.
+- O Save Status do Kokonut acompanha o estado real do editor. Remoções de itens abrem confirmação antes de alterar o rascunho.
+- O cache usa o modelo clássico (`cacheComponents: false`), com `unstable_cache`, tags e invalidação nas ações de publicação.
 
-- `*palavras*` → destaque (âmbar no manifesto “Quem somos”, negrito nos outros textos)
-- `[foto:/caminho/da/foto.jpg|Legenda]` → micro-foto dentro do manifesto (abre ao passar o mouse)
-- Números de “Quem somos”: `17|anos` no título; `Título — descrição` no texto
-- Parágrafos: separe com uma linha em branco
+Marcação dos textos: `*palavras*` destaca trechos; `[foto:/img/foto.jpg|Legenda]` insere micro-foto no manifesto; `17|anos` separa número e unidade; linhas em branco separam parágrafos.
+
+## Mídia e galerias
+
+A biblioteca permite nome, descrição acessível, categoria cadastrada, busca e filtro entre ativos e arquivados. O cadastro de categorias abre ao lado de **Enviar arquivos**. O upload Kokonut recebe imagens e vídeos; o seletor de capas e fotos mostra apenas imagens, enquanto o editor de produto também aceita vídeos.
+
+A galeria pública de cada projeto usa o **Lightbox Grid** do Kokonut, sem a antiga faixa “Em cena”. Imagens abrem inteiras, com navegação, Escape, gestos e acesso ao original. A biblioteca e as galerias de edição têm visualização ampliada, zoom de imagem e reprodução de vídeo. Arquivar preserva arquivos; exclusões e remoções usam confirmação, Hold Button ou ações reversíveis conforme o fluxo.
+
+## Loja e checkout
+
+Os cards oferecem adição direta à sacola quando existe uma única variante com preço válido. Peças com variantes levam à escolha de opções na página do produto; peças sem preço disponível levam à consulta. A adição usa o mesmo estado persistido da loja e abre a sacola.
+
+- Produtos têm variantes por acabamento, tamanho ou versão, SKU, preço, saldo e política de pronta entrega ou encomenda. Publicação e disponibilidade determinam a presença na vitrine: produtos sem variante vendável saem da loja até voltar a haver saldo ou uma opção sob encomenda.
+- A vitrine tem busca, filtros com contagens, ordenação e paginação; variante e foto selecionadas também podem ser restauradas pela URL com nuqs.
+- Favoritos, sacola, CEP e código de cupom usam Zustand persist, com validação, migração das chaves anteriores e sincronização entre abas. A sessão do cliente continua sendo validada no servidor.
+- O checkout reúne endereço, opção de entrega ou retirada, cupom, revisão e confirmação com Slide to Confirm, incluindo confirmação por teclado. Preços, disponibilidade, frete e desconto são conferidos novamente no servidor; a chave de checkout protege contra pedidos duplicados.
+- **Cupons** em `/admin/loja/cupons` podem ser percentuais ou fixos, com período, valor mínimo, ativação e limite de usos. O pedido guarda o desconto e o cupom aplicados. Tear Button, Particle Button e Cart Button estão ligados às ações reais da interface.
+- Pedidos, histórico de pagamento, clientes e movimentos de estoque ficam disponíveis no painel. O contato por WhatsApp permanece como alternativa de atendimento.
+- **Pagamento atual:** `src/server/shop/payments.ts` usa um provedor simulado. O fluxo de Pix/cartão pode ser demonstrado, mas a cobrança real ainda exige implementar um gateway.
+
+O editor de produto envia fotos e vídeos, seleciona da biblioteca, aceita links de vídeo, ordena mídias e controla capa, variante e visibilidade. A importação de produtos e mídia continua disponível para administradores. `npm run catalog:import -- data/produtos.csv data/videos.csv` gera o catálogo local; `data/` não é versionado.
+
+## Analytics, financeiro e relatórios
+
+`/admin` reúne a visão geral e `/admin/analytics` detalha tráfego e resultados. Os gráficos **Metric Card** e **Spending Ring** do Kokonut recebem eventos e pedidos registrados. Há visualizações por período, páginas mais vistas e interações na loja; períodos sem registros têm estados vazios.
+
+O endpoint `/api/analytics` recebe eventos próprios do site. O coletor usa sessão anônima, remove parâmetros da URL e respeita Do Not Track. As consultas administrativas são autenticadas.
+
+**Loja → Financeiro** mostra pagamentos, estornos e valores aguardando confirmação; **Relatórios** mostra pedidos, produtos e categorias. As tabelas usam ReUI Data Grid compacto, filtros/ordenação/paginação na URL e CSV. Datas usam o horário de Brasília. Totais dos pedidos incluem frete e descontos; rankings de produtos e categorias usam o valor dos itens antes de descontos, sem frete. O modelo não registra custos, taxas ou repasses bancários.
+
+## Interface administrativa
+
+A navegação usa o Stack Panel do Kokonut em um Popover nativo do Base UI, com lateral recolhível, Account Menu e Marking Menu no canto inferior, acessível também por `Alt+M`. Um único `Popover.Root` coordena os acionadores com `openOnHover`; os níveis internos deslizam dentro do mesmo painel, com ação de voltar. O viewport mantém uma altura estável para a navegação interna não retirar o painel debaixo do ponteiro. Sidebar, painéis e ações rápidas compartilham os ícones de `src/shared/ui/icons/semantic.ts`.
+
+O tema claro/escuro/sistema e o estado da lateral são persistidos. Liquid Glass fica nas superfícies de navegação e sobreposição, com bordas definidas; campos e tabelas mantêm fundos legíveis. O degradê do painel permanece fixo à esquerda e abaixo.
+
+Os ícones entram por `src/shared/ui/icons/lucide.tsx`, com fontes locais em `animated/` e binding no controle inteiro: hover, foco e pressão. `data-icon-scope` cobre cartões e outros contêineres. Movimento reduzido é respeitado; marcas legítimas, cobogós, ilustrações e gráficos não são substituídos por ícones. Veja [Visual administrativo](docs/admin-design.md) e [Catálogo de ícones](docs/lucide-icons.md).
+
+Os registros `@reui` e `@kokonutui` estão em `components.json`. Shadcn fornece os controles básicos; ReUI, tabelas, ordenação e componentes de dados; Kokonut, navegação, feedback, upload, galeria, gráficos e interações. Os componentes foram adaptados aos dados e às ações do projeto.
+
+## Configurar os serviços
+
+Aplique as migrações em ordem. Além dos esquemas iniciais de conteúdo, catálogo e loja, as migrações de novembro adicionam metadados/categorias de mídia, coleta de analytics, vídeo/arquivamento e cupons com checkout transacional. Alterar os arquivos SQL locais não aplica as mudanças a uma instância Supabase existente.
 
 ## Supabase
 
 1. Crie o projeto (região **São Paulo**).
 2. Rode as migrações em `supabase/migrations/` (SQL Editor, na ordem do nome, ou `npx supabase db push`) e depois `supabase/seed.sql` para carregar o conteúdo inicial.
-3. **Authentication › Providers › Email:** desligue *Allow new users to sign up*. O acesso ao painel é só por convite.
-4. **Primeiro admin:** em *Authentication › Users* convide o seu e-mail e rode no SQL Editor:
+3. **Authentication › Providers › Email:** desligue _Allow new users to sign up_. O acesso ao painel é só por convite.
+4. **Primeiro admin:** em _Authentication › Users_ convide o seu e-mail e rode no SQL Editor:
    ```sql
    insert into public.profiles (id, name, role)
    select id, 'Camila de Lelis', 'admin' from auth.users where email = 'camila@brasiliailuminacao.com.br';
    ```
-   Depois disso, novos usuários são convidados pelo próprio painel (*Configurações › Usuários*).
-5. **Authentication › URL Configuration:** *Site URL* = `https://www.brasiliailuminacao.com.br`; adicione `https://www.brasiliailuminacao.com.br/admin/auth/confirm` em *Redirect URLs* (e `http://localhost:3000/admin/auth/confirm` para testes).
+   Depois disso, novos usuários são convidados pelo próprio painel (_Configurações › Usuários_).
+5. **Authentication › URL Configuration:** _Site URL_ = `https://www.brasiliailuminacao.com.br`; adicione `https://www.brasiliailuminacao.com.br/admin/auth/confirm` em _Redirect URLs_ (e `http://localhost:3000/admin/auth/confirm` para testes).
 6. **Authentication › Email Templates** (convite e redefinição de senha): troque o link por
    `{{ .SiteURL }}/admin/auth/confirm?token_hash={{ .TokenHash }}&type=invite&next=/admin/senha` (no de senha, `type=recovery`).
    Recomendado: configure o SMTP do Supabase com o Resend para esses e-mails saírem do domínio da marca.
 7. Variáveis: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` e `SUPABASE_SERVICE_ROLE_KEY` (esta só no servidor: formulário de contato, webhook e convites).
-8. Depois de criar o projeto, gere os tipos reais: `npx supabase gen types typescript --project-id <id> > src/lib/supabase/database.types.ts`.
+8. Depois de criar o projeto, gere os tipos reais: `npx supabase gen types typescript --project-id <id> > src/shared/api/supabase/database.types.ts`.
 
-Quem pode o quê (RLS): visitantes leem só o publicado/visível; **editor** edita conteúdo, projetos, mídia e mensagens; **admin** também altera configurações e usuários.
+Visitantes leem o conteúdo público e visível. As ações de conteúdo e loja exigem uma pessoa da equipe; configurações, usuários e importação de planilhas têm verificações administrativas próprias. A autorização continua no servidor e nas políticas RLS.
 
-## Amazon S3 + CloudFront (fotos e anexos)
+## Amazon S3 + CloudFront (imagens, vídeos e anexos)
 
 1. Bucket `brasilia-iluminacao-media` em `sa-east-1`, **sem acesso público**.
-2. Distribuição CloudFront com *Origin Access Control* para o bucket. A URL dela vai em `NEXT_PUBLIC_MEDIA_BASE_URL` (ou um domínio próprio, ex.: `midia.brasiliailuminacao.com.br`, com certificado do ACM em `us-east-1`).
+2. Distribuição CloudFront com _Origin Access Control_ para o bucket. A URL dela vai em `NEXT_PUBLIC_MEDIA_BASE_URL` (ou um domínio próprio, ex.: `midia.brasiliailuminacao.com.br`, com certificado do ACM em `us-east-1`).
 3. CORS do bucket (o navegador envia direto para o S3):
    ```json
-   [{ "AllowedOrigins": ["https://www.brasiliailuminacao.com.br", "http://localhost:3000"], "AllowedMethods": ["PUT"], "AllowedHeaders": ["*"], "MaxAgeSeconds": 3600 }]
+   [
+     {
+       "AllowedOrigins": [
+         "https://www.brasiliailuminacao.com.br",
+         "http://localhost:3000"
+       ],
+       "AllowedMethods": ["PUT"],
+       "AllowedHeaders": ["*"],
+       "MaxAgeSeconds": 3600
+     }
+   ]
    ```
 4. Usuário IAM só para o site, com esta política (`S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY`):
    ```json
-   { "Version": "2012-10-17", "Statement": [{ "Effect": "Allow", "Action": ["s3:PutObject", "s3:DeleteObject"], "Resource": "arn:aws:s3:::brasilia-iluminacao-media/*" }] }
+   {
+     "Version": "2012-10-17",
+     "Statement": [
+       {
+         "Effect": "Allow",
+         "Action": ["s3:PutObject", "s3:DeleteObject"],
+         "Resource": "arn:aws:s3:::brasilia-iluminacao-media/*"
+       }
+     ]
+   }
    ```
 5. Variáveis: `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `NEXT_PUBLIC_MEDIA_BASE_URL`.
 
-O painel reduz as fotos no navegador (lado maior até 2400 px, WebP) antes de enviar. As fotos do conteúdo inicial ficam em `public/img`.
+O envio usa o File Upload do Kokonut, com fila por arquivo, progresso, cancelamento e nova tentativa. Imagens aceitas: JPG, PNG, WebP e AVIF; são otimizadas no navegador. Vídeos aceitos: MP4, WebM e MOV. Os limites do servidor ficam em `src/shared/lib/upload-policy.ts`: 15 MB para imagens e 100 MB para vídeos com S3. Sem armazenamento, o envio embutido de demonstração aceita até 2,5 MB. As fotos iniciais ficam em `public/img`.
 
 ## Resend (e-mail)
 
 1. Adicione e verifique o domínio `brasiliailuminacao.com.br` (registros SPF/DKIM no Route 53). `EMAIL_FROM="Brasília Iluminação <contato@brasiliailuminacao.com.br>"`.
 2. `RESEND_API_KEY` e `EMAIL_TEAM_TO` (quem recebe o aviso de novo contato do formulário).
 3. **Receber respostas no painel:** ative o recebimento num **subdomínio** (ex.: `respostas.brasiliailuminacao.com.br`, registro MX no Route 53) e preencha `EMAIL_INBOUND_DOMAIN` com ele. As respostas saem com `Reply-To: t-<id>@respostas…`, então o que o cliente responder cai na conversa certa. Usar um subdomínio não mexe na caixa de e-mail atual do domínio principal.
-4. **Webhook:** em *Resend › Webhooks*, aponte para `https://www.brasiliailuminacao.com.br/api/email/inbound` com os eventos `email.received`, `email.delivered`, `email.opened` e `email.bounced`. Copie o segredo para `RESEND_WEBHOOK_SECRET`.
+4. **Webhook:** em _Resend › Webhooks_, aponte para `https://www.brasiliailuminacao.com.br/api/email/inbound` com os eventos `email.received`, `email.delivered`, `email.opened` e `email.bounced`. Copie o segredo para `RESEND_WEBHOOK_SECRET`.
 
 O formulário grava a conversa, avisa a equipe e manda uma confirmação para o cliente (quando ele informa e-mail). Anexos recebidos abrem por `/api/email/anexo`, só para quem está logado.
 
@@ -131,28 +168,9 @@ Sempre: campo-armadilha (honeypot) e validação no servidor. Opcional: **Cloudf
 
 ## AWS Amplify Hosting + Route 53
 
-1. Amplify › *Create app* › conecte o repositório do GitHub, branch `main`. O `amplify.yml` já está pronto (Node 22, SSR).
-2. Em *Environment variables*, cadastre todas as variáveis do `.env.example`. O build copia para `.env.production` as que o servidor precisa (o Amplify só entrega as variáveis do console às funções SSR desse jeito). O Amplify não aceita nomes começando com `AWS_`, por isso a região é `S3_REGION`.
-3. *Custom domains*: adicione `brasiliailuminacao.com.br` (zona hospedada no Route 53); o Amplify cria os registros e o certificado. Redirecione o domínio sem `www` para `www`.
+1. Amplify › _Create app_ › conecte o repositório do GitHub, branch `main`. O `amplify.yml` já está pronto (Node 22, SSR).
+2. Em _Environment variables_, cadastre todas as variáveis do `.env.example`. O build copia para `.env.production` as que o servidor precisa (o Amplify só entrega as variáveis do console às funções SSR desse jeito). O Amplify não aceita nomes começando com `AWS_`, por isso a região é `S3_REGION`.
+3. _Custom domains_: adicione `brasiliailuminacao.com.br` (zona hospedada no Route 53); o Amplify cria os registros e o certificado. Redirecione o domínio sem `www` para `www`.
 4. Defina `NEXT_PUBLIC_SITE_URL=https://www.brasiliailuminacao.com.br`.
 
-**Atenção à versão:** o projeto usa Next.js 16. Antes de apontar o domínio, publique numa branch de teste e confira no Amplify: páginas de projeto, publicação pelo painel (cache por tags), login e o webhook. Se o Amplify ainda não suportar algum recurso do Next 16, a alternativa sem mudar o código é hospedar com o OpenNext (SST) na mesma conta AWS.
-
-## Loja (fase 1: catálogo, estoque e compra pelo WhatsApp)
-
-- **Produto** tem nome, categoria, descrição, ficha técnica, fotos e vídeos; o cliente escolhe por **acabamento**, **tamanho** e/ou **versão**. Cada combinação é uma **variante** com SKU, preço (vazio = “sob consulta”), saldo e forma de venda: **só pronta entrega** (padrão) ou **sob encomenda** (com prazo opcional).
-- **Regra de estoque:** só aparece na loja o que pode ser vendido. Variante “só pronta entrega” sem saldo aparece esgotada; produto sem nenhuma variante vendável **sai da loja sozinho**, mesmo publicado, e volta quando entra estoque (o painel mostra “Sem estoque”).
-- **Estoque** é um livro-razão (`stock_movements`): entradas, saídas, devoluções e inventários ficam registrados com quem fez; o saldo da variante (`stock_on_hand`) é atualizado por gatilho. O site só sabe se há pronta entrega, nunca o número exato (permissão por coluna).
-- **Fotos e vídeos:** no editor do produto dá para enviar fotos, puxar da biblioteca, colar link de vídeo (YouTube, inclusive Shorts, Vimeo ou .mp4), arrastar para ordenar, tornar capa, ligar a uma variante e **publicar ou ocultar** cada item. Na loja, o vídeo só carrega o player (youtube-nocookie) quando a pessoa clica.
-- **Vitrine** em `/loja`: filtros por categoria, acabamento, faixa de preço, pronta entrega e vídeo (com contagens), busca enquanto digita, ordem e paginação numerada; no celular os filtros abrem numa gaveta. `/loja/[slug]`: galeria por variante, preço e prazo da variante escolhida, ficha técnica e dados estruturados para o Google. A compra é concluída com uma consultora: o botão abre o WhatsApp com produto, variante, SKU e preço.
-- **Importar planilhas:** *Loja › Produtos › Importar planilha* (só admin) aceita a planilha de produtos da loja antiga e a de fotos/vídeos (colunas `SKU` e `URL`). Produtos: itens da mesma peça viram um produto com variantes, os nomes são organizados e a quantidade vira saldo inicial; importar de novo só atualiza preços e acrescenta variantes. Mídia: cada link é ligado pelo SKU, pela família do SKU ou pelo nome; o mesmo link em produtos diferentes entra oculto, para conferir. Nada é apagado.
-- **Modo demonstração:** `npm run catalog:import -- data/produtos.csv data/videos.csv` gera `data/catalogo.json`, que o painel e a vitrine usam sem Supabase. A pasta `data/` fica fora do git: o repositório é público e o catálogo é do cliente.
-- Próximas fases (ver o plano): pedidos no painel, pagamento (AbacatePay atrás de uma interface própria), frete e nota fiscal.
-
-## Decisões e pendências
-
-- Hero: a foto escolhida em *Páginas › Hero* alterna com as capas de dois projetos publicados; na entrada, a luz acende como um dimmer.
-- Movimento: revelações só por opacidade e poucos pixels; se o visitante pede menos movimento no sistema, tudo fica estático.
-- As fotos dos produtos da seção Curadoria e das etapas do Luminotécnico ainda são fixas no código; dá para torná-las editáveis no painel numa próxima etapa.
-- O painel em modo demonstração nunca liga em produção, a não ser com `ADMIN_DEMO=1`.
-- Navegação do site com `<a>` (carga completa entre home e projetos) de propósito: as cenas do GSAP ficam mais previsíveis assim.
+Valide SSR, autenticação, publicação e invalidação de cache, checkout e webhooks no ambiente configurado antes de associar o domínio. O arquivo `amplify.yml` contém a configuração de build; sua presença não indica uma implantação realizada.

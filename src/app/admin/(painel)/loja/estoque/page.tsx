@@ -1,4 +1,4 @@
-import { StockView } from "@/components/admin/views/Stock";
+import { StockView } from "@/_pages/admin-stock/ui/Stock";
 
 export const metadata = { title: "Estoque" };
 

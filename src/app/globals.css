@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@custom-variant dark (&:where(html[data-admin-theme="dark"], html[data-admin-theme="dark"] *));
 
 
 /* Tokens do Manual da Marca (paleta Iluminar) disponíveis como utilitários: bg-ambar, text-marrom-intenso… */

@@ -1,0 +1,12 @@
+[data-sileo-viewport]{z-index:10000!important;--sileo-width:min(350px,calc(100vw - 32px));font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.notification-title{font-weight:500!important;color:#252629!important;font-size:13px!important}
+.notification-description{color:#64666d!important;font-size:12px!important}
+@media(prefers-reduced-motion:reduce){[data-sileo-toast],[data-sileo-toast] *{animation-duration:1ms!important;transition-duration:1ms!important}}
+
+html[data-admin-theme="dark"] .notification-title{color:#f1f2f5!important}
+html[data-admin-theme="dark"] .notification-description{color:#b5b8c1!important}
+
+[data-sileo-title]{text-transform:none!important;max-width:min(260px,calc(100vw - 104px));white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+[data-sileo-description]{text-transform:none!important;white-space:normal;overflow-wrap:anywhere;text-wrap:pretty;line-height:1.5}
+[data-sileo-header-inner]{min-width:0}
+[data-sileo-toast]{text-align:left}

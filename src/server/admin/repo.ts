@@ -1,7 +1,7 @@
 import "server-only";
-import type { Section, SectionKey, Settings, ThreadStatus } from "@/lib/content/schema";
-import { hasSupabase } from "@/lib/supabase/env";
-import type { AdminProject, AdminUser, Dashboard, ListItem, MediaItem, Me, Role, SectionRow, Thread, ThreadSummary } from "./types";
+import type { Section, SectionKey, Settings, ThreadStatus } from "@/entities/site-content";
+import { hasSupabase } from "@/shared/api/supabase/env";
+import type { AdminProject, AdminUser, AdminUserUpdate, UserProfileUpdate, Dashboard, ListItem, MediaItem, Me, Role, SectionRow, Thread, ThreadSummary } from "@/entities/admin";
 
 /** Tudo o que o painel lê e grava. Duas implementações: Supabase (produção) e demonstração em memória. */
 export interface AdminRepo {
@@ -14,6 +14,7 @@ export interface AdminRepo {
   log(text: string): Promise<void>;
 
   sections(): Promise<SectionRow[]>;
+  reorderSections(keys: SectionKey[]): Promise<void>;
   saveSection(key: SectionKey, draft: Section, publish: boolean): Promise<void>;
   setSectionVisible(key: SectionKey, visible: boolean): Promise<void>;
 
@@ -25,15 +26,22 @@ export interface AdminRepo {
   createProject(): Promise<string>;
   saveProject(p: AdminProject): Promise<void>;
   reorderProjects(ids: string[]): Promise<void>;
+  setProjectStatus(id: string, status: AdminProject["status"]): Promise<void>;
   deleteProject(id: string): Promise<void>;
 
   media(): Promise<MediaItem[]>;
-  addMedia(m: { url: string; key: string | null; width: number | null; height: number | null; alt: string }): Promise<MediaItem>;
+  mediaCategories(): Promise<string[]>;
+  createMediaCategory(name: string): Promise<string>;
+  addMedia(m: { url: string; key: string | null; width: number | null; height: number | null; alt: string; name?: string; category?: string; kind?: "image" | "video"; mimeType?: string }): Promise<MediaItem>;
+  setMediaArchived(id: string, archived: boolean): Promise<void>;
   setMediaAlt(id: string, alt: string): Promise<void>;
+  updateMediaMetadata(id: string, metadata: Pick<MediaItem, "name" | "category" | "alt">): Promise<void>;
   deleteMedia(id: string): Promise<{ key: string | null }>;
 
   list(kind: "testimonials" | "faqs"): Promise<ListItem[]>;
-  saveList(kind: "testimonials" | "faqs", items: ListItem[]): Promise<ListItem[]>;
+  deleteListItem(kind: "testimonials" | "faqs", id: string): Promise<void>;
+  /** Updates existing rows; only explicit new IDs may be inserted. Never deletes. */
+  saveList(kind: "testimonials" | "faqs", items: ListItem[], createIds?: readonly string[]): Promise<ListItem[]>;
 
   threads(): Promise<ThreadSummary[]>;
   thread(id: string): Promise<Thread | null>;
@@ -42,6 +50,8 @@ export interface AdminRepo {
   addOutgoing(id: string, msg: { body: string; to: string; from: string; providerId: string | null; messageId: string; delivery: string; attachments: Array<{ name: string; url: string }> }): Promise<void>;
 
   users(): Promise<AdminUser[]>;
+  updateUser(id: string, input: AdminUserUpdate): Promise<AdminUser>;
+  updateOwnProfile(id: string, input: UserProfileUpdate): Promise<Me>;
   invite(name: string, email: string, role: Role): Promise<void>;
 }
 

@@ -1,4 +1,4 @@
-import { OrderAdmin } from "@/components/admin/views/Orders";
+import { OrderAdmin } from "@/_pages/admin-orders/ui/Orders";
 
 export const metadata = { title: "Pedido" };
 

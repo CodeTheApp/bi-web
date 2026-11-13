@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { Inbox } from "@/components/admin/views/Inbox";
+import { Inbox } from "@/_pages/admin-inbox/ui/Inbox";
 
 export const metadata = { title: "Mensagens" };
 

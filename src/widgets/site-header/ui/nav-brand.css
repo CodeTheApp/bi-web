@@ -1,0 +1,6 @@
+.nav .logo img.nav-brand-image {
+  width: 100%;
+  max-width: 100%;
+  object-fit: contain;
+  object-position: left center;
+}

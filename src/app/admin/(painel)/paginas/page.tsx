@@ -1,4 +1,4 @@
-import { Pages } from "@/components/admin/views/Pages";
+import { Pages } from "@/_pages/admin-pages/ui/Pages";
 
 export const metadata = { title: "Páginas" };
 

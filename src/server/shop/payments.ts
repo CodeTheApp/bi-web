@@ -1,6 +1,6 @@
 import "server-only";
 import { randomBytes } from "node:crypto";
-import type { Order, Payment, PaymentMethod } from "@/lib/shop/types";
+import type { Order, Payment, PaymentMethod } from "@/entities/order";
 
 /**
  * Pagamento atrás de uma interface própria: o checkout fala só com `PaymentProvider`.

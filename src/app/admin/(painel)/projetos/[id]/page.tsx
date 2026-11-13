@@ -1,4 +1,4 @@
-import { ProjectEditor } from "@/components/admin/views/Projects";
+import { ProjectEditor } from "@/_pages/admin-projects/ui/Projects";
 
 export const metadata = { title: "Projeto" };
 

@@ -1,57 +1,140 @@
 import "server-only";
-import { createHmac, randomBytes, randomInt, timingSafeEqual } from "node:crypto";
+import { couponDiscount, type Coupon } from "@/entities/coupon";
+import {
+  createHmac,
+  randomBytes,
+  randomInt,
+  timingSafeEqual,
+} from "node:crypto";
 import { cookies } from "next/headers";
-import { orderSummary, type Customer, type Order } from "@/lib/shop/types";
+import { orderSummary, type Customer, type Order } from "@/entities/order";
 import { readDemo, writeDemoSoon } from "../demo-file";
 import type { ShopRepo } from "./repo";
+import { demoAllowed } from "@/server/admin/repo";
+import { catalogStore } from "@/server/catalog/store";
+import {
+  demoWorkspaceKey,
+  getDemoDataMode,
+  type DemoDataMode,
+} from "@/server/demo-workspace";
+import { seedDemoCommerce, type CommerceFixtureState } from "./demo-fixtures";
 
 /**
- * Loja em modo demonstração: clientes, favoritos e pedidos em memória, gravados em data/demo-loja.json.
+ * Loja em demonstração: workspaces isolados, preservando o arquivo original demo-loja.json.
  * O login por código não manda e-mail: o código aparece na tela. O "Google" entra com o e-mail informado.
  */
-type State = { secret: string; seq: number; customers: Customer[]; favorites: Record<string, string[]>; orders: Order[] };
+type State = CommerceFixtureState & {
+  secret: string;
+  seq: number;
+  customers: Customer[];
+  favorites: Record<string, string[]>;
+  orders: Order[];
+  coupons: Coupon[];
+};
 const FILE = "demo-loja.json";
 const COOKIE = "bi_cliente";
-const g = globalThis as unknown as { __biShop?: State; __biCodes?: Map<string, { code: string; exp: number; tries: number }> };
+const g = globalThis as unknown as {
+  __biShop?: State;
+  __biShopWorkspaces?: Map<string, State>;
+  __biWorkspaceCodes?: Map<
+    string,
+    Map<string, { code: string; exp: number; tries: number }>
+  >;
+};
+const workspaceFile = (mode: DemoDataMode) =>
+  `demo-workspace-shop-${mode}.json`;
 
-function state(): State {
-  if (g.__biShop) return g.__biShop;
+function originalState(): State {
+  if (g.__biShop) return { ...g.__biShop, coupons: g.__biShop.coupons ?? [] };
   const saved = readDemo<State>(FILE);
-  g.__biShop = { secret: saved?.secret ?? randomBytes(24).toString("hex"), seq: saved?.seq ?? 1000, customers: saved?.customers ?? [], favorites: saved?.favorites ?? {}, orders: saved?.orders ?? [] };
+  g.__biShop = {
+    secret: saved?.secret ?? randomBytes(24).toString("hex"),
+    seq: saved?.seq ?? 1000,
+    customers: saved?.customers ?? [],
+    favorites: saved?.favorites ?? {},
+    orders: saved?.orders ?? [],
+    coupons: saved?.coupons ?? [],
+  };
   return g.__biShop;
 }
-const save = () => writeDemoSoon(FILE, () => g.__biShop);
-const codes = () => (g.__biCodes ??= new Map());
 
-const sign = (id: string) => `${id}.${createHmac("sha256", state().secret).update(id).digest("base64url")}`;
-function verify(token: string | undefined) {
-  if (!token) return null;
-  const id = token.slice(0, token.lastIndexOf("."));
-  const a = Buffer.from(sign(id));
-  const b = Buffer.from(token);
-  return a.length === b.length && timingSafeEqual(a, b) ? id : null;
+function state(mode: DemoDataMode): State {
+  const stores = (g.__biShopWorkspaces ??= new Map());
+  const key = demoWorkspaceKey("shop", mode);
+  const existing = stores.get(key);
+  if (existing) return existing;
+  const saved = readDemo<State>(workspaceFile(mode));
+  const S: State = saved
+    ? { ...saved, coupons: saved.coupons ?? [] }
+    : mode === "examples"
+      ? clone(originalState())
+      : {
+          secret: randomBytes(24).toString("hex"),
+          seq: 1000,
+          customers: [],
+          favorites: {},
+          orders: [],
+          coupons: [],
+        };
+  stores.set(key, S);
+  if (mode === "examples" && seedDemoCommerce(S, catalogStore(mode).products))
+    writeDemoSoon(workspaceFile(mode), () => S);
+  return S;
 }
 
-async function startSession(c: Customer) {
-  (await cookies()).set(COOKIE, sign(c.id), { httpOnly: true, sameSite: "lax", path: "/", maxAge: 60 * 60 * 24 * 60 });
-}
-
-function upsertCustomer(email: string, provider: Customer["provider"], name = "") {
-  const S = state();
-  const e = email.trim().toLowerCase();
-  let c = S.customers.find((x) => x.email === e);
-  if (!c) {
-    c = { id: crypto.randomUUID(), email: e, name: name || "", phone: "", cpf: "", provider, createdAt: new Date().toISOString(), addresses: [] };
-    S.customers.push(c);
-  } else if (name && !c.name) c.name = name;
-  save();
-  return c;
-}
-
-const clone = <T,>(x: T): T => structuredClone(x);
+const clone = <T>(x: T): T => structuredClone(x);
 
 export function demoShop(): ShopRepo {
-  const S = state();
+  if (!demoAllowed())
+    throw new Error("Demonstração indisponível neste ambiente.");
+  const mode = getDemoDataMode();
+  const S = state(mode);
+  const save = () => writeDemoSoon(workspaceFile(mode), () => S);
+  const workspaceCodes = (g.__biWorkspaceCodes ??= new Map());
+  const codeKey = demoWorkspaceKey("shop-codes", mode);
+  const codeStore = workspaceCodes.get(codeKey) ?? new Map();
+  workspaceCodes.set(codeKey, codeStore);
+  const codes = () => codeStore;
+  const sign = (id: string) =>
+    `${id}.${createHmac("sha256", S.secret).update(id).digest("base64url")}`;
+  const verify = (token: string | undefined) => {
+    if (!token) return null;
+    const id = token.slice(0, token.lastIndexOf("."));
+    const a = Buffer.from(sign(id));
+    const b = Buffer.from(token);
+    return a.length === b.length && timingSafeEqual(a, b) ? id : null;
+  };
+  const startSession = async (customer: Customer) => {
+    (await cookies()).set(COOKIE, sign(customer.id), {
+      httpOnly: true,
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 60,
+    });
+  };
+  const upsertCustomer = (
+    email: string,
+    provider: Customer["provider"],
+    name = "",
+  ) => {
+    const e = email.trim().toLowerCase();
+    let customer = S.customers.find((item) => item.email === e);
+    if (!customer) {
+      customer = {
+        id: crypto.randomUUID(),
+        email: e,
+        name,
+        phone: "",
+        cpf: "",
+        provider,
+        createdAt: new Date().toISOString(),
+        addresses: [],
+      };
+      S.customers.push(customer);
+    } else if (name && !customer.name) customer.name = name;
+    save();
+    return customer;
+  };
   const current = async () => {
     const id = verify((await cookies()).get(COOKIE)?.value);
     return id ? (S.customers.find((c) => c.id === id) ?? null) : null;
@@ -66,15 +149,22 @@ export function demoShop(): ShopRepo {
 
     async sendCode(email) {
       const code = String(randomInt(0, 1_000_000)).padStart(6, "0");
-      codes().set(email.trim().toLowerCase(), { code, exp: Date.now() + 10 * 60_000, tries: 0 });
+      codes().set(email.trim().toLowerCase(), {
+        code,
+        exp: Date.now() + 10 * 60_000,
+        tries: 0,
+      });
       return { demoCode: code };
     },
     async verifyCode(email, code) {
       const e = email.trim().toLowerCase();
       const hit = codes().get(e);
-      if (!hit || hit.exp < Date.now()) throw new Error("O código expirou. Peça um novo.");
-      if (++hit.tries > 5) throw new Error("Muitas tentativas. Peça um novo código.");
-      if (hit.code !== code.trim()) throw new Error("Código incorreto. Confira e tente de novo.");
+      if (!hit || hit.exp < Date.now())
+        throw new Error("O código expirou. Peça um novo.");
+      if (++hit.tries > 5)
+        throw new Error("Muitas tentativas. Peça um novo código.");
+      if (hit.code !== code.trim())
+        throw new Error("Código incorreto. Confira e tente de novo.");
       codes().delete(e);
       const c = upsertCustomer(e, "email");
       await startSession(c);
@@ -126,15 +216,127 @@ export function demoShop(): ShopRepo {
       return [...set];
     },
 
+    async coupons() {
+      return S.coupons.map((coupon) => ({
+        ...clone(coupon),
+        used: S.orders.filter(
+          (order) =>
+            order.coupon?.id === coupon.id && order.status !== "cancelado",
+        ).length,
+      }));
+    },
+    async couponByCode(code) {
+      const coupon = S.coupons.find((item) => item.code === code);
+      return coupon
+        ? {
+            ...clone(coupon),
+            used: S.orders.filter(
+              (order) =>
+                order.coupon?.id === coupon.id && order.status !== "cancelado",
+            ).length,
+          }
+        : null;
+    },
+    async saveCoupon(id, draft) {
+      if (
+        S.coupons.some(
+          (coupon) => coupon.code === draft.code && coupon.id !== id,
+        )
+      )
+        throw new Error("Já existe um cupom com esse código.");
+      const existing = id ? S.coupons.find((coupon) => coupon.id === id) : null;
+      if (id && !existing) throw new Error("Cupom não encontrado.");
+      if (
+        existing &&
+        existing.code !== draft.code &&
+        S.orders.some((order) => order.coupon?.id === id)
+      )
+        throw new Error(
+          "Cupons já utilizados mantêm seu código. Crie outro cupom.",
+        );
+      const coupon = {
+        ...draft,
+        id: existing?.id ?? crypto.randomUUID(),
+        createdAt: existing?.createdAt ?? new Date().toISOString(),
+        used: 0,
+      };
+      const index = S.coupons.findIndex((item) => item.id === coupon.id);
+      if (index < 0) S.coupons.unshift(coupon);
+      else S.coupons[index] = coupon;
+      save();
+      return clone(coupon);
+    },
+    async deleteCoupon(id) {
+      if (S.orders.some((order) => order.coupon?.id === id))
+        throw new Error(
+          "Este cupom já foi utilizado. Desative-o para preservar o histórico.",
+        );
+      S.coupons = S.coupons.filter((coupon) => coupon.id !== id);
+      save();
+    },
+    findCheckout: async (key, customerId) =>
+      clone(
+        S.orders.find(
+          (order) =>
+            order.checkoutKey === key && order.customerId === customerId,
+        ) ?? null,
+      ),
+    async createCheckout(input, key, code) {
+      // No await between validation and insertion: another request cannot spend
+      // the final coupon use while this transaction is in progress.
+      const existing = S.orders.find(
+        (order) =>
+          order.checkoutKey === key && order.customerId === input.customerId,
+      );
+      if (existing) return { order: clone(existing), created: false };
+      const coupon = code ? S.coupons.find((item) => item.code === code) : null;
+      if (code && !coupon) throw new Error("Cupom não encontrado.");
+      const snapshot = coupon
+        ? couponDiscount(
+            {
+              ...coupon,
+              used: S.orders.filter(
+                (order) =>
+                  order.coupon?.id === coupon.id &&
+                  order.status !== "cancelado",
+              ).length,
+            },
+            input.subtotalCents,
+          )
+        : null;
+      const discountCents = snapshot?.discountCents ?? 0;
+      if ((input.discountCents ?? 0) !== discountCents)
+        throw new Error("O cupom mudou. Confira o total e confirme novamente.");
+      const order: Order = {
+        ...clone(input),
+        coupon: snapshot,
+        discountCents,
+        checkoutKey: key,
+        totalCents: input.subtotalCents - discountCents + input.shippingCents,
+        id: crypto.randomUUID(),
+        number: ++S.seq,
+        createdAt: new Date().toISOString(),
+      };
+      S.orders.unshift(order);
+      save();
+      return { order: clone(order), created: true };
+    },
     async createOrder(o) {
-      const order: Order = { ...clone(o), id: crypto.randomUUID(), number: ++S.seq, createdAt: new Date().toISOString() };
+      const order: Order = {
+        ...clone(o),
+        id: crypto.randomUUID(),
+        number: ++S.seq,
+        createdAt: new Date().toISOString(),
+      };
       S.orders.unshift(order);
       save();
       return clone(order);
     },
     async myOrders() {
       const c = await current();
-      return c ? S.orders.filter((o) => o.customerId === c.id).map(orderSummary) : [];
+      return c
+        ? S.orders.filter((o) => o.customerId === c.id).map(orderSummary)
+        : [];
     },
     async myOrder(id) {
       const c = await current();
@@ -152,10 +354,33 @@ export function demoShop(): ShopRepo {
       return clone(o);
     },
     allOrders: async () => S.orders.map(orderSummary),
+    analyticsOrders: async () => clone(S.orders),
+    customer: async (id) => clone(S.customers.find((customer) => customer.id === id) ?? null),
+    customerOrders: async (id) => S.orders.filter((order) => order.customerId === id).sort((a, b) => b.createdAt.localeCompare(a.createdAt)).map(orderSummary),
+    async updateCustomer(id, contact) {
+      const customer = S.customers.find((item) => item.id === id);
+      if (!customer) throw new Error("Cliente não encontrado.");
+      // Explicit fields preserve login identity, private profile fields and
+      // immutable snapshots on earlier orders, including on legacy callers.
+      customer.name = contact.name;
+      customer.phone = contact.phone;
+      customer.contactEmail = contact.contactEmail;
+      save();
+      return clone(customer);
+    },
     async customers() {
       return S.customers.map((c) => {
-        const mine = S.orders.filter((o) => o.customerId === c.id && o.status !== "cancelado" && o.status !== "aguardando_pagamento");
-        return { ...clone(c), orders: S.orders.filter((o) => o.customerId === c.id).length, spentCents: mine.reduce((s, o) => s + o.totalCents, 0) };
+        const mine = S.orders.filter(
+          (o) =>
+            o.customerId === c.id &&
+            o.status !== "cancelado" &&
+            o.status !== "aguardando_pagamento",
+        );
+        return {
+          ...clone(c),
+          orders: S.orders.filter((o) => o.customerId === c.id).length,
+          spentCents: mine.reduce((s, o) => s + o.totalCents, 0),
+        };
       });
     },
   };

@@ -1,10 +1,12 @@
 "use server";
 import { headers } from "next/headers";
 import { ContactConfirmation, ContactNotification } from "@/emails/ContactEmails";
-import { contactSchema } from "@/lib/content/schema";
-import { hasSupabase } from "@/lib/supabase/env";
-import { createSupabaseService } from "@/lib/supabase/server";
+import { contactSchema } from "@/entities/site-content";
+import { hasSupabase } from "@/shared/api/supabase/env";
+import { createSupabaseService } from "@/shared/api/supabase/server";
 import { isEmail, sendEmail, TEAM_TO, threadReplyTo } from "@/server/email";
+import { getDemoDataMode } from "@/server/demo-workspace";
+import { receiveDemoContact } from "@/server/admin/demo-contact";
 
 export type ContactState = { ok: boolean; message?: string; errors?: Partial<Record<"nome" | "contato" | "form", string>> };
 
@@ -25,6 +27,7 @@ async function verifyTurnstile(token: string | null) {
 
 /** Formulário de contato do site: grava a conversa no Supabase e avisa a equipe por e-mail. */
 export async function sendContact(_prev: ContactState, form: FormData): Promise<ContactState> {
+  const demoMode = !hasSupabase ? getDemoDataMode() : null;
   const raw = Object.fromEntries(["nome", "contato", "cidade", "busca", "msg", "website"].map((k) => [k, String(form.get(k) ?? "")]));
   const parsed = contactSchema.safeParse(raw);
   if (!parsed.success) {
@@ -41,6 +44,15 @@ export async function sendContact(_prev: ContactState, form: FormData): Promise<
   }
 
   const d = parsed.data;
+  if (demoMode) {
+    try {
+      receiveDemoContact(d, demoMode);
+      return { ok: true, message: "Obrigada! Retornamos em breve. ✦" };
+    } catch (error) {
+      console.error("[contato] falha ao gravar conversa de demonstração", error);
+      return { ok: false, errors: { form: "Não foi possível enviar agora. Tente de novo ou fale pelo WhatsApp." } };
+    }
+  }
   const email = isEmail(d.contato) ? d.contato.trim().toLowerCase() : "";
   const phone = email ? "" : d.contato;
   const subject = `${d.busca || "Contato"} — ${d.nome}`;

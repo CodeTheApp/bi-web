@@ -1,5 +1,5 @@
 import { Section, Text } from "@react-email/components";
-import type { ContactInput } from "@/lib/content/schema";
+import type { ContactInput } from "@/entities/site-content";
 import { EmailLayout, h, p } from "./Layout";
 
 export function ContactNotification({ data }: { data: ContactInput }) {

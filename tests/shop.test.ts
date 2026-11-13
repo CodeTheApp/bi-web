@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { FREE_FROM, quoteShipping, regionOf } from "@/lib/shop/shipping";
-import { cartCount, cartSubtotal, formatCep, installmentsFor, orderSummary, type Order } from "@/lib/shop/types";
+import { FREE_FROM, quoteShipping, regionOf } from "@/entities/order";
+import { cartCount, cartSubtotal, formatCep, installmentsFor, orderSummary, type Order } from "@/entities/order";
 
 describe("frete simulado", () => {
   it("em Brasília a entrega padrão é grátis e dá para retirar", () => {

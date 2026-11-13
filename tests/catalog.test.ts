@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { dimsFromName, familyKey, finishFromName, importCsv, modelName, parseCsv, specsFromName } from "@/lib/catalog/import";
-import { isVideoUrl, mediaKey, parseVideo } from "@/lib/catalog/media";
-import { matchMedia, readMediaRows } from "@/lib/catalog/import";
-import { canSell, productSchema, summarize, toPublic } from "@/lib/catalog/types";
+import { dimsFromName, familyKey, finishFromName, importCsv, modelName, parseCsv, specsFromName } from "@/entities/product";
+import { isVideoUrl, mediaKey, parseVideo } from "@/entities/product";
+import { matchMedia, readMediaRows } from "@/entities/product";
+import { canSell, productSchema, summarize, toPublic } from "@/entities/product";
 
 // Linhas no formato da exportação da loja antiga (Magento), com nomes fictícios.
 const CSV = `ID,Nome,Tipo,Grupo de Atributos,SKU,Preco,Qtd,Visibilidade,Status
@@ -141,7 +141,7 @@ describe("vitrine: busca, filtros e páginas", () => {
   const all = Array.from({ length: 60 }, (_, i) => make(i, i % 3 ? "pendentes" : "lustres", i % 2 ? "Preto e dourado" : "Bege", 50000 + i * 10000, (i % 4) + 1, i % 10 === 0));
 
   it("filtra por categoria, acabamento, preço e vídeo, com contagens por grupo", async () => {
-    const { browse, readState } = await import("@/lib/catalog/browse");
+    const { browse, readState } = await import("@/entities/product");
     const r = browse(all, readState({ categoria: "lustres", cor: ["dourado"], preco: "1000-3000" }));
     expect(r.list.every((p) => p.category === "lustres" && p.variants[0].options.acabamento === "Preto e dourado")).toBe(true);
     expect(r.list.every((p) => p.variants[0].priceCents! >= 100000 && p.variants[0].priceCents! < 300000)).toBe(true);
@@ -153,7 +153,7 @@ describe("vitrine: busca, filtros e páginas", () => {
   });
 
   it("busca por nome e código, ordena e pagina de 24 em 24", async () => {
-    const { browse, readState } = await import("@/lib/catalog/browse");
+    const { browse, readState } = await import("@/entities/product");
     expect(browse(all, readState({ q: "modelo 12" })).list.map((p) => p.id)).toEqual(["p12"]);
     expect(browse(all, readState({ q: "sku-7" })).total).toBe(1);
     const p2 = browse(all, readState({ pagina: "2", ordem: "menor-preco" }));

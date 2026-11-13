@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { createSupabaseServer } from "@/lib/supabase/server";
+import { createSupabaseServer } from "@/shared/api/supabase/server";
 
 /** Volta do login com Google (Supabase): abre a sessão e devolve a pessoa para onde estava. */
 export async function GET(req: NextRequest) {

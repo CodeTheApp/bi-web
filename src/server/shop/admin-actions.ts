@@ -1,11 +1,12 @@
 "use server";
 import { updateTag } from "next/cache";
 import { z } from "zod";
-import { NEXT_STATUS, ORDER_STATUS, ORDER_STATUS_LABEL, type OrderStatus } from "@/lib/shop/types";
+import { NEXT_STATUS, ORDER_STATUS, ORDER_STATUS_LABEL, type OrderStatus } from "@/entities/order";
 import { ctx, run } from "@/server/admin/guard";
 import { CATALOG_TAG } from "@/server/catalog/public";
 import { getCatalogRepo } from "@/server/catalog/repo";
 import { getShopRepo } from "./repo";
+import { isDemoOrderFixture } from "./demo-fixtures";
 
 /** Pedidos e clientes no painel (equipe logada). */
 
@@ -45,10 +46,13 @@ export async function setOrderStatus(id: string, status: OrderStatus, opts: { tr
     const tracking = z.string().trim().max(80).optional().parse(opts.tracking);
     if (status === "enviado" && !tracking && !o.tracking && o.shipping.id !== "retirada") throw new Error("Informe o código de rastreio para marcar como enviado.");
 
-    const catalog = await getCatalogRepo();
     const paid = o.status !== "aguardando_pagamento";
-    if (status === "pago") await catalog.sell(o.items.map((i) => ({ variantId: i.variantId, qty: i.qty })), -1, `Pedido nº ${o.number}`);
-    if (status === "cancelado" && paid) await catalog.sell(o.items.map((i) => ({ variantId: i.variantId, qty: i.qty })), 1, `Pedido nº ${o.number} cancelado`);
+    const affectsStock = !(shop.mode === "demo" && isDemoOrderFixture(o));
+    if (affectsStock) {
+      const catalog = await getCatalogRepo();
+      if (status === "pago") await catalog.sell(o.items.map((i) => ({ variantId: i.variantId, qty: i.qty })), -1, `Pedido nº ${o.number}`);
+      if (status === "cancelado" && paid) await catalog.sell(o.items.map((i) => ({ variantId: i.variantId, qty: i.qty })), 1, `Pedido nº ${o.number} cancelado`);
+    }
 
     const payment =
       status === "pago" && o.payment ? { ...o.payment, status: "aprovado" as const, paidAt: new Date().toISOString() }
@@ -60,7 +64,7 @@ export async function setOrderStatus(id: string, status: OrderStatus, opts: { tr
       { status, at: new Date().toISOString(), note: z.string().trim().max(300).default("").parse(opts.note ?? "") || (tracking ? `Rastreio ${tracking}` : ""), by: me.name },
     );
     await repo.log(`Pedido nº ${o.number}: ${ORDER_STATUS_LABEL[status].toLowerCase()}`);
-    if (status === "pago" || (status === "cancelado" && paid)) updateTag(CATALOG_TAG);
+    if (affectsStock && (status === "pago" || (status === "cancelado" && paid))) updateTag(CATALOG_TAG);
     return r;
   });
 }

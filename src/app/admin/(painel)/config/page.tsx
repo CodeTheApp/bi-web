@@ -1,4 +1,4 @@
-import { Settings } from "@/components/admin/views/Settings";
+import { Settings } from "@/_pages/admin-settings/ui/Settings";
 
 export const metadata = { title: "Configurações" };
 

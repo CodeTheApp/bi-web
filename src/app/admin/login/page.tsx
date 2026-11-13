@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { LoginArt, LoginForm } from "@/components/admin/LoginForms";
+import { LoginArt, LoginForm } from "@/features/staff-auth";
 import { demoAllowed } from "@/server/admin/repo";
 
 export const metadata = { title: "Entrar" };

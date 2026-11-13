@@ -1,8 +1,13 @@
 import "server-only";
-import { SECTION_KEYS, SECTION_NAMES, sectionSchema, settingsSchema } from "@/lib/content/schema";
-import { seedContent } from "@/lib/content/seed";
+import { normalizeSettings, normalizeSectionOrder, SECTION_KEYS, SECTION_NAMES, sectionSchema } from "@/entities/site-content";
+import { seedContent } from "@/entities/site-content";
+import { canonicalMediaCategory, DEFAULT_MEDIA_CATEGORIES, initialMediaCategory, mediaCategories, mediaCategoryKey, mediaCategoryNameSchema, mediaName } from "@/entities/media";
+import { sectionUsesMedia } from "@/entities/site-content";
 import { slugify, type AdminRepo } from "./repo";
-import type { AdminProject, AdminUser, ListItem, MediaItem, Message, SectionRow, Thread } from "./types";
+import type { AdminProject, AdminUser, ListItem, MediaItem, Message, SectionRow, Thread, Me } from "@/entities/admin";
+import { getDemoDataMode, type DemoDataMode } from "@/server/demo-workspace";
+import { publishAdminEvent } from "@/server/admin-events/event-bus";
+import type { AdminLiveTopic } from "@/shared/model/admin-live";
 
 /**
  * Modo demonstração: dados de exemplo em memória, para ver e testar o painel sem Supabase.
@@ -14,10 +19,13 @@ type Store = {
   settings: typeof seedContent.settings;
   projects: AdminProject[];
   media: Array<Omit<MediaItem, "uses">>;
+  mediaCategoryNames?: string[];
   testimonials: ListItem[];
   faqs: ListItem[];
   threads: Thread[];
   users: AdminUser[];
+  identity?: Me;
+  usersSeedVersion?: number;
   log: Array<{ at: string; text: string }>;
 };
 
@@ -41,10 +49,11 @@ function seed(): Store {
   ];
   const alts: Record<string, string> = { hero: "Sala de jantar com pendentes de vidro", camila: "Camila de Lelis", escada: "Escada helicoidal iluminada", pendentes: "Pendentes esféricos iluminados", bento: "Galeria Bento Viana", vip: "Sala VIP BRB", "apt-sala": "Sala do Apartamento J|R", "prod-1": "Luminária de mesa bronze" };
   return {
-    sections: SECTION_KEYS.map((key) => ({ key, draft: seedContent.sections[key], published: seedContent.sections[key], status: key === "lumi" ? "rascunho" : "publicado" })),
+    sections: SECTION_KEYS.map((key) => ({ key, draft: structuredClone(seedContent.sections[key]), published: structuredClone(seedContent.sections[key]), status: key === "lumi" ? "rascunho" : "publicado" })),
     settings: { ...seedContent.settings },
     projects: seedContent.projects.map((p) => ({ id: p.id, slug: p.slug, title: p.title, category: p.category, location: p.location, year: p.year, summary: p.summary, scope: [...p.scope], cover: p.cover, status: p.status, gallery: p.gallery.map((g) => ({ ...g })) })),
-    media: imgs.map((f, i) => ({ id: `m${i}`, url: `/img/${f}.jpg`, alt: alts[f] ?? "", width: null, height: null, createdAt: iso(i * H) })),
+    mediaCategoryNames: [...DEFAULT_MEDIA_CATEGORIES],
+    media: imgs.map((f, i) => ({ id: `m${i}`, url: `/img/${f}.jpg`, name: mediaName({ url: `/img/${f}.jpg` }), category: initialMediaCategory(`/img/${f}.jpg`), alt: alts[f] ?? "", width: null, height: null, createdAt: iso(i * H) })),
     testimonials: seedContent.testimonials.map((t) => ({ id: uid(), a: t.quote, b: t.author, c: t.location, visible: t.visible })),
     faqs: seedContent.faqs.map((f) => ({ id: uid(), a: f.question, b: f.answer, visible: f.visible })),
     threads: [
@@ -75,12 +84,61 @@ function seed(): Store {
   };
 }
 
-const g = globalThis as unknown as { __biDemo?: Store };
-const store = () => (g.__biDemo ??= seed());
 const clone = <T,>(x: T): T => structuredClone(x);
+const g = globalThis as unknown as { __biDemo?: Store; __biDemoEmpty?: Store };
+const DEMO_ID = "u1";
+const defaultIdentity: Me = { id: DEMO_ID, name: "Camila de Lelis", email: "camila@brasiliailuminacao.com.br", role: "admin" };
+const currentUser = (store: Store): Me => {
+  const user = store.users.find((row) => row.id === DEMO_ID) ?? store.identity ?? defaultIdentity;
+  return { id: user.id, name: user.name, email: user.email, role: user.role, ...(user.avatarUrl ? { avatarUrl: user.avatarUrl } : {}) };
+};
+
+function seedUsers(store: Store) {
+  if (store.usersSeedVersion === 1) return;
+  const fixtures: AdminUser[] = [
+    { id: "6b000001-0000-4000-8000-000000000001", name: "Beatriz Freitas · exemplo", email: "beatriz@demo.example", role: "editor", status: "Ativo" },
+    { id: "6b000001-0000-4000-8000-000000000002", name: "Daniel Rocha · exemplo", email: "daniel@demo.example", role: "editor", status: "Ativo" },
+    { id: "6b000001-0000-4000-8000-000000000003", name: "Luiza Nascimento · exemplo", email: "luiza@demo.example", role: "admin", status: "Ativo" },
+    { id: "6b000001-0000-4000-8000-000000000004", name: "Gabriel Castro · exemplo", email: "gabriel@demo.example", role: "editor", status: "Convite pendente" },
+    { id: "6b000001-0000-4000-8000-000000000005", name: "Carolina Nunes · exemplo", email: "carolina@demo.example", role: "editor", status: "Convite pendente" },
+  ];
+  for (const fixture of fixtures) if (!store.users.some((user) => user.id === fixture.id || user.email.toLowerCase() === fixture.email)) store.users.push(fixture);
+  store.usersSeedVersion = 1;
+}
+
+/** Examples preserve the existing store. Empty lists and edits live in a separate workspace. */
+export function getDemoAdminStore(mode: DemoDataMode = getDemoDataMode()): Store {
+  if (mode === "examples") {
+    const store = g.__biDemo ??= seed();
+    seedUsers(store);
+    return store;
+  }
+  if (!g.__biDemoEmpty) {
+    const sections = SECTION_KEYS.map((key): SectionRow => {
+      const empty = sectionSchema.parse({ visible: false });
+      return { key, draft: clone(empty), published: clone(empty), status: "publicado" };
+    });
+    g.__biDemoEmpty = { sections, settings: clone(seedContent.settings), projects: [], media: [], mediaCategoryNames: [], testimonials: [], faqs: [], threads: [], users: [], log: [], identity: clone(currentUser(getDemoAdminStore("examples"))) };
+  }
+  return g.__biDemoEmpty;
+}
 
 export function demoRepo(): AdminRepo {
-  const S = store();
+  const mode = getDemoDataMode();
+  const S = getDemoAdminStore(mode);
+  if (!S.mediaCategoryNames) {
+    S.mediaCategoryNames = mediaCategories(S.media, DEFAULT_MEDIA_CATEGORIES);
+    for (const media of S.media) {
+      media.category = media.category?.trim()
+        ? canonicalMediaCategory(media.category, S.mediaCategoryNames)
+        : initialMediaCategory(media.url);
+    }
+  }
+  // Keep existing drafts when new editable sections are introduced during development.
+  const sectionRows = new Map(S.sections.map((row) => [row.key, row]));
+  S.sections = normalizeSectionOrder(S.sections.map((row) => row.key)).map((key) => sectionRows.get(key) ?? {
+    key, draft: clone(seedContent.sections[key]), published: clone(seedContent.sections[key]), status: "publicado",
+  });
   const summary = (t: Thread) => {
     const l = t.messages[t.messages.length - 1];
     t.lastAt = l.at;
@@ -91,7 +149,7 @@ export function demoRepo(): AdminRepo {
   const repo: AdminRepo = {
     mode: "demo",
     async me() {
-      return { id: "u1", name: "Camila de Lelis", email: "camila@brasiliailuminacao.com.br", role: "admin" };
+      return clone(currentUser(S));
     },
     async signIn() {
       return null;
@@ -117,6 +175,10 @@ export function demoRepo(): AdminRepo {
     },
 
     sections: async () => clone(S.sections),
+    async reorderSections(keys) {
+      const rows = new Map(S.sections.map((row) => [row.key, row]));
+      S.sections = normalizeSectionOrder(keys).map((key) => rows.get(key)!);
+    },
     async saveSection(key, draft, publish) {
       const r = S.sections.find((s) => s.key === key)!;
       r.draft = sectionSchema.parse(draft);
@@ -129,9 +191,9 @@ export function demoRepo(): AdminRepo {
       r.published.visible = visible;
     },
 
-    settings: async () => clone(S.settings),
+    settings: async () => clone(normalizeSettings(S.settings)),
     async saveSettings(s) {
-      S.settings = settingsSchema.parse(s);
+      S.settings = normalizeSettings(s);
     },
 
     projects: async () => clone(S.projects),
@@ -148,6 +210,11 @@ export function demoRepo(): AdminRepo {
     async reorderProjects(ids) {
       S.projects.sort((a, b) => ids.indexOf(a.id) - ids.indexOf(b.id));
     },
+    async setProjectStatus(id, status) {
+      const project = S.projects.find((item) => item.id === id);
+      if (!project) throw new Error("Projeto não encontrado.");
+      project.status = status;
+    },
     async deleteProject(id) {
       S.projects = S.projects.filter((p) => p.id !== id);
     },
@@ -155,20 +222,43 @@ export function demoRepo(): AdminRepo {
     async media() {
       return S.media.map((m) => ({
         ...m,
+        name: mediaName(m),
+        category: canonicalMediaCategory(m.category, S.mediaCategoryNames!),
         uses: [
           ...S.projects.filter((p) => p.cover === m.url || p.gallery.some((x) => x.url === m.url)).map((p) => p.title),
-          ...S.sections.filter((s) => s.draft.image === m.url || s.published.image === m.url).map((s) => SECTION_NAMES[s.key]),
+          ...S.sections.filter((section) => sectionUsesMedia(section, m.url)).map((section) => SECTION_NAMES[section.key]),
+          ...S.users.filter((user) => user.avatarUrl === m.url).map((user) => `Avatar de ${user.name}`),
+          ...(S.identity?.avatarUrl === m.url && !S.users.some((user) => user.id === S.identity!.id) ? [`Avatar de ${S.identity.name}`] : []),
         ],
       }));
     },
+    async mediaCategories() {
+      return [...S.mediaCategoryNames!].sort((a, b) => a.localeCompare(b, "pt-BR"));
+    },
+    async createMediaCategory(name) {
+      const clean = mediaCategoryNameSchema.parse(name);
+      if (S.mediaCategoryNames!.some((category) => mediaCategoryKey(category) === mediaCategoryKey(clean))) throw new Error("Já existe uma categoria com esse nome.");
+      S.mediaCategoryNames!.push(clean);
+      return clean;
+    },
     async addMedia(m) {
-      const item = { id: uid(), url: m.url, alt: m.alt, width: m.width, height: m.height, createdAt: new Date().toISOString() };
+      const item = { kind: m.kind ?? "image" as const, mimeType: m.mimeType, archived: false, id: uid(), url: m.url, name: mediaName(m), category: canonicalMediaCategory(m.category, S.mediaCategoryNames!), alt: m.alt, width: m.width, height: m.height, createdAt: new Date().toISOString() };
       S.media.unshift(item);
       return { ...item, uses: [] };
+    },
+    async setMediaArchived(id, archived) {
+      const media = S.media.find((item) => item.id === id);
+      if (!media) throw new Error("Arquivo não encontrado.");
+      media.archived = archived;
     },
     async setMediaAlt(id, alt) {
       const m = S.media.find((x) => x.id === id);
       if (m) m.alt = alt;
+    },
+    async updateMediaMetadata(id, metadata) {
+      const media = S.media.find((item) => item.id === id);
+      if (!media) throw new Error("Imagem não encontrada.");
+      Object.assign(media, { ...metadata, category: canonicalMediaCategory(metadata.category, S.mediaCategoryNames!) });
     },
     async deleteMedia(id) {
       S.media = S.media.filter((m) => m.id !== id);
@@ -176,8 +266,17 @@ export function demoRepo(): AdminRepo {
     },
 
     list: async (kind) => clone(S[kind]),
-    async saveList(kind, items) {
-      S[kind] = clone(items);
+    async deleteListItem(kind, id) {
+      S[kind] = S[kind].filter((item) => item.id !== id);
+    },
+    async saveList(kind, items, createIds = []) {
+      const currentIds = new Set(S[kind].map((item) => item.id));
+      const explicitCreates = new Set(createIds);
+      const edits = items.filter((item) => currentIds.has(item.id) || explicitCreates.has(item.id));
+      const editedIds = new Set(edits.map((item) => item.id));
+      // Missing snapshot rows belong to other clients, so retain them. An ID
+      // deleted by another client is updated only if it still exists.
+      S[kind] = [...clone(edits), ...S[kind].filter((item) => !editedIds.has(item.id))];
       return clone(S[kind]);
     },
 
@@ -185,7 +284,7 @@ export function demoRepo(): AdminRepo {
     thread: async (id) => clone(S.threads.find((t) => t.id === id) ?? null),
     async markRead(id) {
       const t = S.threads.find((x) => x.id === id);
-      if (t) t.unread = false;
+      if (t?.unread) t.unread = false;
     },
     async setThreadStatus(id, status) {
       const t = S.threads.find((x) => x.id === id);
@@ -201,8 +300,48 @@ export function demoRepo(): AdminRepo {
 
     users: async () => clone(S.users),
     async invite(name, email, role) {
+      if (S.users.some((user) => user.email.toLowerCase() === email.toLowerCase())) throw new Error("Já existe um usuário com esse e-mail.");
       S.users.push({ id: uid(), name, email, role, status: "Convite pendente" });
     },
+    async updateUser(id, input) {
+      const user = S.users.find((row) => row.id === id);
+      if (!user) throw new Error("Usuário não encontrado.");
+      if (S.users.some((row) => row.id !== id && row.email.toLowerCase() === input.email.toLowerCase())) throw new Error("Já existe um usuário com esse e-mail.");
+      if (id === DEMO_ID && input.role !== "admin") throw new Error("Você não pode remover seu próprio acesso de administrador.");
+      const activeAdmins = S.users.filter((row) => row.role === "admin" && row.status === "Ativo").length + (S.identity?.role === "admin" && !S.users.some((row) => row.id === S.identity!.id) ? 1 : 0);
+      if (user.role === "admin" && input.role !== "admin" && activeAdmins <= 1) throw new Error("Mantenha pelo menos um administrador ativo.");
+      Object.assign(user, clone(input));
+      return clone(user);
+    },
+    async updateOwnProfile(id, input) {
+      if (id !== DEMO_ID) throw new Error("Perfil não encontrado.");
+      const user = S.users.find((row) => row.id === id);
+      if (user) Object.assign(user, clone(input));
+      else S.identity = { ...currentUser(S), ...clone(input) };
+      return clone(currentUser(S));
+    },
   };
+  const changes: Partial<Record<keyof AdminRepo, readonly AdminLiveTopic[]>> = {
+    log: ["activity"],
+    reorderSections: ["sections"], saveSection: ["sections"], setSectionVisible: ["sections"],
+    saveSettings: ["settings"],
+    createProject: ["projects"], saveProject: ["projects"], reorderProjects: ["projects"],
+    setProjectStatus: ["projects"], deleteProject: ["projects"],
+    createMediaCategory: ["media"], addMedia: ["media"], setMediaArchived: ["media"],
+    setMediaAlt: ["media"], updateMediaMetadata: ["media"], deleteMedia: ["media"],
+    deleteListItem: ["lists"], saveList: ["lists"],
+    markRead: ["threads"], setThreadStatus: ["threads"], addOutgoing: ["threads"],
+    invite: ["users"], updateUser: ["users"], updateOwnProfile: ["users"],
+  };
+  for (const key of Object.keys(changes) as Array<keyof AdminRepo>) {
+    const method = repo[key] as (...args: unknown[]) => Promise<unknown>;
+    (repo as unknown as Record<string, unknown>)[key] = async (...args: unknown[]) => {
+      // Reading an already-read thread must not create an invalidation/refetch loop.
+      const changed = key !== "markRead" || S.threads.some((thread) => thread.id === args[0] && thread.unread);
+      const result = await method.apply(repo, args);
+      if (changed) publishAdminEvent(changes[key]!, mode);
+      return result;
+    };
+  }
   return repo;
 }

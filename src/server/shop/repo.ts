@@ -1,6 +1,14 @@
 import "server-only";
-import type { Address, Customer, Order, OrderSummary, Profile } from "@/lib/shop/types";
-import { hasSupabase } from "@/lib/supabase/env";
+import type { Coupon, CouponDraft } from "@/entities/coupon";
+import type {
+  Address,
+  Customer,
+  CustomerContactUpdate,
+  Order,
+  OrderSummary,
+  Profile,
+} from "@/entities/order";
+import { hasSupabase } from "@/shared/api/supabase/env";
 import { demoAllowed } from "@/server/admin/repo";
 
 /**
@@ -14,7 +22,11 @@ export interface ShopRepo {
   sendCode(email: string): Promise<{ demoCode?: string }>;
   verifyCode(email: string, code: string): Promise<Customer>;
   /** Google: no Supabase devolve a URL de autorização; na demonstração entra direto com o e-mail informado. */
-  google(next: string, demoEmail?: string, demoName?: string): Promise<{ url?: string; customer?: Customer }>;
+  google(
+    next: string,
+    demoEmail?: string,
+    demoName?: string,
+  ): Promise<{ url?: string; customer?: Customer }>;
   signOut(): Promise<void>;
   me(): Promise<Customer | null>;
 
@@ -25,15 +37,38 @@ export interface ShopRepo {
   favorites(): Promise<string[]>;
   setFavorites(add: string[], remove: string[]): Promise<string[]>;
 
+  coupons(): Promise<Coupon[]>;
+  couponByCode(code: string): Promise<Coupon | null>;
+  saveCoupon(id: string | null, draft: CouponDraft): Promise<Coupon>;
+  deleteCoupon(id: string): Promise<void>;
+  findCheckout(key: string, customerId: string): Promise<Order | null>;
+  /** Atomically validates a coupon, reserves its use and creates an idempotent checkout. */
+  createCheckout(
+    o: Omit<Order, "id" | "number" | "createdAt">,
+    key: string,
+    couponCode: string,
+  ): Promise<{ order: Order; created: boolean }>;
+
   createOrder(o: Omit<Order, "id" | "number" | "createdAt">): Promise<Order>;
   myOrders(): Promise<OrderSummary[]>;
   myOrder(id: string): Promise<Order | null>;
 
   /** Usado pelo pagamento (sistema) e pelo painel (equipe). */
   getOrder(id: string): Promise<Order | null>;
-  updateOrder(id: string, patch: Partial<Pick<Order, "status" | "payment" | "tracking" | "notes">>, event?: Order["timeline"][number]): Promise<Order>;
+  updateOrder(
+    id: string,
+    patch: Partial<Pick<Order, "status" | "payment" | "tracking" | "notes">>,
+    event?: Order["timeline"][number],
+  ): Promise<Order>;
   allOrders(): Promise<OrderSummary[]>;
-  customers(): Promise<Array<Customer & { orders: number; spentCents: number }>>;
+  /** Full orders are read only on the server before analytics removes private checkout fields. */
+  analyticsOrders(): Promise<Order[]>;
+  customers(): Promise<
+    Array<Customer & { orders: number; spentCents: number }>
+  >;
+  customer(id: string): Promise<Customer | null>;
+  customerOrders(id: string): Promise<OrderSummary[]>;
+  updateCustomer(id: string, contact: CustomerContactUpdate): Promise<Customer>;
 }
 
 export async function getShopRepo(): Promise<ShopRepo> {
